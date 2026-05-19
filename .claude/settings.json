@@ -1,0 +1,10 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(julia --project=SMoReVerse -e 'using Pkg; Pkg.test\\(\\)')",
+            "Bash(julia --project=SMoReBase -e 'using Pkg; Pkg.test\\(\\)')",
+            "Bash(julia --project=SMoReParS -e 'using Pkg; Pkg.test\\(\\)')",
+            "Bash(julia --project=SMoReGloS -e 'using Pkg; Pkg.test\\(\\)')"
+        ]
+    }
+}

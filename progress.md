@@ -51,3 +51,39 @@ The default loss is `GaussianNLL`. `WeightedSSE` (sum of squared errors divided 
 
 ### Status
 Branch `claude/funny-mendeleev-b87754`. All documentation files written, stub source structure created. No implementation code. Ready for first implementation session on `SMoReBase`.
+
+---
+
+## Session: SMoReBase Implementation (2026-05-19)
+
+### Goal
+Implement all SMoReBase stub files (types, fitting, profile likelihood, sampling, ODE extension) and tests.
+
+### Key Design Decisions
+
+**Conditions are categorical labels only**
+Decided in planning: `ConditionSpec` wraps `Vector{String}`. The SM function encodes the numeric effect of each condition internally. Eliminates the `ConditionSpec.values::Matrix` field from the original PRD.
+
+**`ParameterBounds` → `ParameterPrior`**
+Generalized from box bounds to a `Vector{<:UnivariateDistribution}`. Box bounds are represented as `Uniform(lb, ub)`. Convenience constructor `ParameterPrior(lower, upper; names)` wraps pairs into `Uniform`. Optimization bounds derived from `support(d)` via `_lowerBounds`/`_upperBounds`. This makes the type directly useful for SMoReParS posterior inference.
+
+**"cohort" → "param_set" throughout**
+More precise terminology: one param_set = one CM parameter vector whose runs generated training data for the SM. `CMData` axis 1 is `n_param_sets`; field name `param_set_labels`.
+
+**CMData canonical shape: 4-D `[n_param_sets, n_conditions, n_times, n_outputs]`**
+Resolves the open question from the init session. 2-D and 3-D inputs are promoted automatically in the keyword constructor. This resolves all axis ambiguity.
+
+**`ForwardDiff` added as a direct dependency**
+`Optimization.jl` v5 requires an explicit ADType (`AutoForwardDiff()`) for gradient-based optimization — there is no implicit fallback. `ForwardDiff` was already a transitive dependency in the manifest; adding it to `Project.toml` does not install any new packages.
+
+**Profile likelihood: fixed-parameter optimization via projection**
+`_profileLL` builds a reduced `(n_params-1)`-vector objective: captures the full objective in a closure, projects free parameters back into the full space, fixes `p[fixed_idx] = fixed_val`. The inner closure correctly handles `ForwardDiff.Dual` elements by using `T = eltype(p_free)` for the full parameter vector.
+
+**`sampleSMPredictions` v0: first condition only**
+LHS sampling evaluates the SM at `conditions[1]` only. Multi-condition sampling deferred to when `SMoReParS` integration clarifies the expected output shape.
+
+**QuasiMonteCarlo 0.3.x: no `rng` kwarg for `LatinHypercubeSample`**
+The `rng` keyword is not supported in the installed version. For reproducibility, users should call `Random.seed!` before `sampleSMPredictions`.
+
+### Status
+Branch `feature/smorebase-implementation`. All 11 stub files implemented, `sampling.jl` added, `SMoReBase.jl` updated. All tests pass (`julia --project=. -e 'using Pkg; Pkg.test()'`). Ready to open PR.

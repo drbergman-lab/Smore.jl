@@ -53,21 +53,23 @@ fit = fitSurrogate(sm, data, P0, bounds)
 
 ### Completed
 
-_(none yet — implementation begins in subsequent sessions)_
+**SMoReBase**
+- [x] `CMData` / `AbstractCMData` — summary statistics type for CM observations (4-D layout: `[n_param_sets, n_conditions, n_times, n_outputs]`)
+- [x] `ConditionSpec`, `ParameterPrior` — supporting types (`ParameterPrior` holds `Distributions.jl` priors; box bounds via `Uniform`)
+- [x] `ODESurrogateModel`, `AnalyticalSurrogateModel` — surrogate model types with `_evaluate` dispatch
+- [x] ODE extension (`SMoReBaseOrdinaryDiffEqExt`) — ODE solving via `OrdinaryDiffEq.jl`
+- [x] `AbstractLoss`, `GaussianNLL`, `CustomLoss` — loss function types
+- [x] `fitSurrogate` — fit SM to CM output data via bounded LBFGS optimization (parallel over param_sets)
+- [x] `SMFitResult` — result type for SM fitting
+- [x] UQ of SM parameters — `ProfileLikelihood` method; `_uq` internal dispatch
+- [x] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ
+- [x] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
+- [x] `SampledPredictions` — result type for prediction sampling
 
 ### Remaining
 
 **SMoReBase**
-- [ ] `CMData` / `AbstractCMData` — summary statistics type for CM observations
-- [ ] `ConditionSpec`, `ParameterBounds` — supporting types
-- [ ] `ODESurrogateModel`, `AnalyticalSurrogateModel` — surrogate model types with `_evaluate` dispatch
-- [ ] ODE extension (`SMoReBaseOrdinaryDiffEqExt`) — ODE solving via `OrdinaryDiffEq.jl`
-- [ ] `AbstractLoss`, `GaussianNLL`, `CustomLoss` — loss function types
-- [ ] `fitSurrogate` — fit SM to CM output data via bounded optimization (parallel over cohorts)
-- [ ] `SMFitResult` — result type for SM fitting
-- [ ] UQ of SM parameters — `ProfileLikelihood` method; `_uq` internal dispatch
-- [ ] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ
-- [ ] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
+- [ ] `ODESurrogateModel.y0` — extend to `Dict{String,Vector{Float64}}` for condition-specific initial conditions
 
 **SMoReParS**
 - [ ] `buildPosterior` — posterior on CM parameter space given data + SM UQ

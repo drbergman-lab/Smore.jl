@@ -4,7 +4,7 @@ CurrentModule = SMoRe
 
 # SMoRe
 
-Documentation for [SMoRe](https://github.com/Daniel Bergman/SMoRe.jl).
+Documentation for [SMoRe](https://github.com/drbergman-lab/SMoReVerse.jl).
 
 ```@index
 ```

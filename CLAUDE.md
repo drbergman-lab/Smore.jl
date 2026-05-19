@@ -60,13 +60,11 @@ SMoReGloS/
 All work must remain strictly inside this repository folder (`~/.julia/dev/SMoReVerse/`).
 Do **not** access or edit files in `SMoReExamples.jl` or any other repo.
 
-> **Repo rename note:** The local directory is currently named `SMoRe` and will be renamed to `SMoReVerse` by the user at the end of the initialization session. Adjust paths accordingly once the rename is done.
-
 ## Worktree Sessions
 
 When Claude Code launches a session inside a git worktree (primary working directory ends with `.claude/worktrees/<name>`), **all file reads and writes must use paths rooted at the worktree, not the main repo root.** The main repo may appear as an "Additional working directory" in the environment block — ignore it for file edits.
 
-**Concretely:** if the worktree is at `~/.julia/dev/SMoRe/.claude/worktrees/foo`, edit `~/.julia/dev/SMoRe/.claude/worktrees/foo/src/SMoReBase/types/cm_data.jl`, NOT the main repo path.
+**Concretely:** if the worktree is at `~/.julia/dev/SMoReVerse/.claude/worktrees/foo`, edit `~/.julia/dev/SMoReVerse/.claude/worktrees/foo/SMoReBase/src/types/cm_data.jl`, NOT the main repo path.
 
 **Pitfall — resumed sessions:** When a session is resumed from a compacted summary, the summary may cite main-repo paths from prior reads. Discard those paths and re-derive the correct worktree-rooted path before making any edits.
 
@@ -91,6 +89,11 @@ Claude Code (the CLI tool) runs directly on your machine and can freely run `git
 - **Exported vs internal:** public API exported from the relevant submodule file; internal helpers prefixed `_`
 - **Unicode field names:** use mathematical Unicode in structs where unambiguous (e.g., `μ`, `σ`, `Σ` in `CMData`)
 
+## Git Rules
+
+**Never stage or commit without explicit instruction.**
+The human reviews diffs and stages files themselves. Do not run `git add`, `git stage`, or `git commit` unless the human explicitly asks you to. You may run read-only git commands (`git status`, `git diff`, `git log`, `git branch`) freely.
+
 ## Required Workflow for Any Change
 
 1. Generate a **design brief** in the assistant response **before any code changes**.
@@ -101,7 +104,7 @@ Claude Code (the CLI tool) runs directly on your machine and can freely run `git
 4. Implement in the feature branch only.
 5. Update [README.md](README.md) Implementation Status when a feature is complete.
 6. Trim PRD.md and progress.md to reflect final implementation before merging.
-7. Commit and open a PR.
+7. Tell the human the branch is ready; they will review, stage, and commit.
 
 **Design brief template:**
 ```

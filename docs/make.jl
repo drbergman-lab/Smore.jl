@@ -6,9 +6,9 @@ DocMeta.setdocmeta!(SMoRe, :DocTestSetup, :(using SMoRe); recursive=true)
 makedocs(;
     modules=[SMoRe],
     authors="Daniel Bergman <danielrbergman@gmail.com> and contributors",
-    sitename="SMoRe.jl",
+    sitename="SMoReVerse.jl",
     format=Documenter.HTML(;
-        canonical="https://Daniel Bergman.github.io/SMoRe.jl",
+        canonical="https://bergman-lab.github.io/SMoReVerse.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/Daniel Bergman/SMoRe.jl",
+    repo="github.com/drbergman-lab/SMoReVerse.jl",
     devbranch="main",
 )

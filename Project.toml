@@ -1,0 +1,13 @@
+name = "SMoRe"
+uuid = "23b2bb2a-7f74-494c-9af6-5faea0e0a514"
+authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
+version = "0.0.1"
+
+[compat]
+julia = "1.10.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

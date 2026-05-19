@@ -1,0 +1,16 @@
+name = "SMoReParS"
+uuid = "3ee2652a-bda0-4b1a-9ac8-9183f1e3827d"
+authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+SMoReBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
+
+[compat]
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

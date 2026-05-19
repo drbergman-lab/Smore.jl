@@ -1,13 +1,23 @@
-name = "SMoRe"
+name = "SMoReVerse"
 uuid = "23b2bb2a-7f74-494c-9af6-5faea0e0a514"
+version = "0.1.0"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
-version = "0.0.1"
+
+[workspace]
+projects = ["SMoReBase", "SMoReParS", "SMoReGloS"]
+
+[deps]
+SMoReBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
+SMoReGloS = "2c631fec-d58f-4fb9-82f2-11ad836cc5aa"
+SMoReParS = "3ee2652a-bda0-4b1a-9ac8-9183f1e3827d"
 
 [compat]
-julia = "1.10.10"
+Pkg = "1.12.1"
+julia = "1.10"
 
 [extras]
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Pkg", "Test"]

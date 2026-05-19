@@ -1,0 +1,17 @@
+name = "SMoReGloS"
+uuid = "2c631fec-d58f-4fb9-82f2-11ad836cc5aa"
+authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+GlobalSensitivity = "af5da776-676b-467e-8baf-acd8249e4f0f"
+SMoReBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
+
+[compat]
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

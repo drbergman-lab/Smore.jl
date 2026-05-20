@@ -61,8 +61,6 @@ function _buildCMCallable(
     _validatePriorVsGrid(cm_sample, cm_prior)
     get_bounds = _buildBoundsInterpolant(cm_sample, lb_table, ub_table, interp)
 
-    lhs_method = LatinHypercubeSample(rng = rng)
-
     function f(u::AbstractVector)
         # 1. ICDF: unit-cube → natural CM parameter scale
         θ_CM = [quantile(cm_prior.distributions[i], u[i]) for i in eachindex(u)]
@@ -70,8 +68,13 @@ function _buildCMCallable(
         # 2. Interpolate SM parameter CI bounds at this CM parameter point
         lb, ub = get_bounds(θ_CM)
 
-        # 3. LHS sample within the SM parameter CI box — result is [n_sm_params × n_sm_samples]
-        sm_samples = QuasiMonteCarlo.sample(n_sm_samples, lb, ub, lhs_method)
+        # 3. LHS sample within the SM parameter CI box — result is [n_sm_params × n_sm_samples].
+        # This uses a uniform distribution on [lb, ub] for each SM parameter (product measure).
+        # A richer approximation would interpolate the full profile LL curve at each CM point
+        # and sample from the resulting weighted distribution (as sampleSMPredictions does for
+        # a single cohort). That requires interpolating entire curves across the CM grid rather
+        # than just the two CI scalars, and is an open research direction.
+        sm_samples = SMoReBase._sampleSMParams(lb, ub, n_sm_samples, rng)
 
         # 4. Evaluate SM and accumulate outputFn across samples, then average
         out_sum = outputFn(SMoReBase._evaluate(sm, times, sm_samples[:, 1], cond_label))

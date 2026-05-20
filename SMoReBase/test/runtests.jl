@@ -247,9 +247,13 @@ end
     @test result.parameters[1, 1] ≈ p_true[1] atol = 0.05
     @test result.parameters[1, 2] ≈ p_true[2] atol = 0.1
 
-    # parallel=true should give same result
-    result_par = fitSurrogate(sm, data, P0, prior; parallel = true)
-    @test result_par.parameters ≈ result.parameters atol = 1e-4
+    # callable executor (map) should give identical result
+    result_exec = fitSurrogate(sm, data, P0, prior; executor = map)
+    @test result_exec.parameters ≈ result.parameters atol = 1e-4
+
+    # symbol :serial should give identical result
+    result_serial = fitSurrogate(sm, data, P0, prior; executor = :serial)
+    @test result_serial.parameters ≈ result.parameters atol = 1e-4
 
     # Dimension validation
     @test_throws ArgumentError fitSurrogate(sm, data, [0.5 5.0 1.0], prior)

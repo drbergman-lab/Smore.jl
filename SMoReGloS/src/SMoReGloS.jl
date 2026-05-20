@@ -3,7 +3,6 @@ module SMoReGloS
 using Distributions
 using GlobalSensitivity
 using Interpolations
-using QuasiMonteCarlo
 using Random
 using SMoReBase
 

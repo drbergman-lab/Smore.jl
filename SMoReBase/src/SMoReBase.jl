@@ -5,6 +5,7 @@ using ForwardDiff
 using LinearAlgebra
 using Optimization
 using OptimizationOptimJL
+using QuasiMonteCarlo
 using Random
 using Statistics
 

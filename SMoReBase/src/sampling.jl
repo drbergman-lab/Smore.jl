@@ -1,30 +1,26 @@
-# Draw `n` samples from the marginal distribution defined by a profile LL curve using
-# piecewise-linear inverse-CDF sampling. The unnormalized density at each grid point is
-# proportional to exp(ll); a trapezoid-rule CDF is built over the profile grid and then
-# inverted by linear interpolation.
-function _sampleProfileCurve(
-    rng::AbstractRNG,
-    profile_values::AbstractVector,
-    log_likelihoods::AbstractVector,
-    n::Int,
+# Apply the inverse CDF of a profile LL curve to a vector of pre-drawn u-values in [0,1].
+# Builds a trapezoid-rule CDF from exp(ll) weights, then inverts by piecewise-linear
+# interpolation. Separating CDF application from u-value generation lets the caller use
+# any sampling scheme (iid, Sobol, LHS) for the unit-hypercube points.
+function _applyProfileInverseCDF(
+    profile_values  :: AbstractVector,
+    log_likelihoods :: AbstractVector,
+    u_values        :: AbstractVector,
 )
     xs = profile_values
     w  = exp.(log_likelihoods .- maximum(log_likelihoods))
 
-    # Trapezoid-rule CDF: cdf[i] = ∫_{xs[1]}^{xs[i]} w dx (unnormalized)
     m   = length(xs)
     cdf = Vector{Float64}(undef, m)
     cdf[1] = 0.0
     for i in 2:m
         cdf[i] = cdf[i-1] + 0.5 * (w[i-1] + w[i]) * (xs[i] - xs[i-1])
     end
-    cdf ./= cdf[end]   # normalize to [0, 1]
+    cdf ./= cdf[end]
 
-    # Inverse-CDF: for each u ~ Uniform(0,1), find interval and interpolate
-    samples = Vector{Float64}(undef, n)
-    for k in 1:n
-        u = rand(rng)
-        # searchsortedlast returns largest i s.t. cdf[i] ≤ u
+    samples = Vector{Float64}(undef, length(u_values))
+    for k in eachindex(u_values)
+        u = u_values[k]
         i = searchsortedlast(cdf, u)
         i = clamp(i, 1, m - 1)
         Δc = cdf[i+1] - cdf[i]
@@ -32,6 +28,50 @@ function _sampleProfileCurve(
         samples[k] = xs[i] + t * (xs[i+1] - xs[i])
     end
     return samples
+end
+
+# ── _sampleSMParams ────────────────────────────────────────────────────────────
+#
+# Unified SM parameter sampler. Returns [n_sm_params × n].
+# Two dispatch methods cover the two call sites in the pipeline:
+#   1. ProfileLikelihoodResult  — used by sampleSMPredictions (LL-weighted marginal CDFs)
+#   2. (lb, ub)                 — used by SMoReGloS (uniform LHS within an interpolated CI box)
+#
+# Both reduce to inverse-CDF sampling in [0,1]^n_sm_params; the difference is the CDF:
+# method 1 uses the empirical LL-weighted CDF, method 2 uses a uniform CDF on the box.
+# A future improvement to method 2 would interpolate the full profile LL curves across
+# the CM parameter grid and use the same weighted CDF as method 1 — see the comment in
+# SMoReGloS's _buildCMCallable for details.
+
+function _sampleSMParams(
+    uq  :: ProfileLikelihoodResult,
+    n   :: Int,
+    rng :: AbstractRNG,
+)
+    n_params = length(uq.profiles)
+
+    U     = QuasiMonteCarlo.sample(n, zeros(n_params), ones(n_params), SobolSample())  # [n_params × n] in [0,1]
+    shift = rand(rng, n_params)           # Cranley-Patterson shift: one uniform offset per dimension
+    U     = mod.(U .+ shift, 1.0)        # wrap to [0,1] — preserves low-discrepancy structure
+
+    params = Matrix{Float64}(undef, n_params, n)
+    for (i, pc) in enumerate(uq.profiles)
+        params[i, :] = _applyProfileInverseCDF(pc.profile_values, pc.log_likelihoods, U[i, :])
+    end
+    return params
+end
+
+function _sampleSMParams(
+    lb  :: AbstractVector,
+    ub  :: AbstractVector,
+    n   :: Int,
+    rng :: AbstractRNG,
+)
+    n_params = length(lb)
+    U     = QuasiMonteCarlo.sample(n, zeros(n_params), ones(n_params), SobolSample())  # [n_params × n] in [0,1]
+    shift = rand(rng, n_params)           # Cranley-Patterson shift: one uniform offset per dimension
+    U     = mod.(U .+ shift, 1.0)        # wrap to [0,1] — preserves low-discrepancy structure
+    return lb .+ U .* (ub .- lb)         # linear map to [lb, ub]
 end
 
 """
@@ -73,12 +113,7 @@ function sampleSMPredictions(
     conditions::ConditionSpec = ConditionSpec(),
     rng::AbstractRNG          = Random.default_rng(),
 )
-    n_params = length(uqResult.profiles)
-
-    params = Matrix{Float64}(undef, n_params, nSamples)
-    for (i, pc) in enumerate(uqResult.profiles)
-        params[i, :] = _sampleProfileCurve(rng, pc.profile_values, pc.log_likelihoods, nSamples)
-    end
+    params = _sampleSMParams(uqResult, nSamples, rng)
 
     # Evaluate SM at each sample (first condition only in v0)
     times      = uqResult.times

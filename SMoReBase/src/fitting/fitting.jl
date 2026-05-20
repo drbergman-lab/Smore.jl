@@ -15,7 +15,11 @@ One independent bounded optimization is run per param_set using `Fminbox(LBFGS()
 # Keyword arguments
 - `conditions::ConditionSpec` — experimental conditions (default: single `"default"` condition)
 - `loss::AbstractLoss` — loss function (default: `GaussianNLL()`)
-- `parallel::Bool` — fit param_sets in parallel via `Threads.@threads` (default: `false`)
+- `executor` — controls how param_sets are fitted:
+  - `:serial` (default) — sequential `map`
+  - `:threads` — multithreaded via `ThreadsX.map` (requires `using ThreadsX`)
+  - `:distributed` — distributed via `Distributed.pmap` (requires `using Distributed`)
+  - Any callable `(f, itr) -> Vector` — custom executor
 - `optimOptions::NamedTuple` — forwarded to `Optimization.jl` `solve()` (default: `(;)`)
 
 # Returns
@@ -35,7 +39,7 @@ function fitSurrogate(
     prior::ParameterPrior;
     conditions::ConditionSpec  = ConditionSpec(),
     loss::AbstractLoss         = GaussianNLL(),
-    parallel::Bool             = false,
+    executor                   = :serial,
     optimOptions::NamedTuple   = (;),
 )
     n_ps     = n_param_sets(data)
@@ -50,8 +54,9 @@ function fitSurrogate(
             "conditions has $(length(conditions)) labels but data has $(n_conditions(data)) conditions"
         ))
 
+    map_fn = _resolveExecutor(executor)
     params, errors, conv, opt_results = _fitAllParamSets(
-        sm, data, P0, prior, conditions, loss, optimOptions, parallel,
+        sm, data, P0, prior, conditions, loss, optimOptions, map_fn,
     )
 
     return SMFitResult{Float64}(

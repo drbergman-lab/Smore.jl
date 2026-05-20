@@ -18,7 +18,9 @@ the outer two axes.
 
 # Fields
 - `μ` — mean observations `[n_times, n_variables, n_conditions, n_param_sets]`
-- `σ` — pointwise standard deviations (same shape as `μ`)
+- `σ` — pointwise noise level treated as a known standard deviation in the likelihood (same shape as `μ`);
+  the caller controls the convention — pass the sample standard deviation `σ_rep` for a fixed noise
+  floor, or the standard error `σ_rep/√R` if the likelihood should tighten with replicate count `R`
 - `Σ` — optional full covariance `[n_variables, n_variables, n_times, n_conditions, n_param_sets]` (`nothing` → independent)
 - `times` — time grid (`nothing` when the time axis is absent)
 - `variable_labels` — names of observable output variables

@@ -120,3 +120,31 @@ Morris does not compute total-order indices; `SensitivityResult.ST` is `Union{No
 
 ### Status
 Branch `feature/smoregloss-run-sensitivity`. All 6 source files implemented, module and Project.toml updated. All 5 test sets pass (20 assertions). Ready to open PR.
+
+---
+
+## Session: MLE-anchored profile grid (2026-05-20)
+
+### Problem
+The profile likelihood grid was built as a regular `range(lb, ub; length=n_points)`, which almost never includes the exact MLE value. When a parameter is sharply identified, the LL can drop below the CI threshold within a single grid step of the MLE. If no grid point has `ll >= threshold`, `_computeCI` returns `nothing` for both bounds — a false unidentifiability result.
+
+Reported symptom: `ci_lower = nothing, ci_upper = nothing` when profiling K in a logistic growth model with T_final=50 (dynamics reach carrying capacity, so K is well-identified).
+
+### Design decisions
+
+**MLE-anchored grid with proportional split**
+Always include `p_mle[i]` as a grid point. Split the remaining `n_points - 1` points in proportion to the distance from the MLE to each boundary:
+- `frac_left = (mle_val - lb) / (ub - lb)`
+- `n_left = max(1, round(Int, frac_left * (n_points - 1)) + 1)` (includes MLE)
+- `n_right = n_points - n_left + 1` (includes MLE; deduped when concatenating)
+
+Equal split (`ceil(n_points/2)`) was rejected: when the MLE is near a boundary, it wastes most points on the infeasible side.
+
+**Outward warm-start**
+Each half is scanned outward from the MLE (left half: MLE → lb; right half: MLE → ub), warm-starting the inner optimizer from the previous grid point. This keeps the warm start near the region of high LL and improves convergence of the re-optimization step.
+
+**Test data range extended to t=50**
+The existing ProfileLikelihood test used t ∈ [0, 5], which leaves K completely unidentifiable (N(5) ≈ 0.19 ≪ K=4). The test's conditional CI check masked this. Changed to t ∈ [0:5:50] so K is visible in the data, allowing the CI assertion to be made unconditional.
+
+### Status
+All SMoReBase tests pass (16 assertions in ProfileLikelihood). Branch `feature/mle-anchored-profile` ready for review.

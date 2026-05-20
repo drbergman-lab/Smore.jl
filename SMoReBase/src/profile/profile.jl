@@ -10,13 +10,17 @@ abstract type AbstractUQMethod end
 
 Profile likelihood UQ method.
 
-For each SM parameter, sweeps a grid of `n_points` values over the parameter range,
+For each SM parameter, builds a grid of `n_points` values **anchored at the MLE**,
 fixes that parameter, re-optimizes all remaining parameters, and records the
 log-likelihood at each grid point. Confidence intervals are computed via Wilks' theorem:
 
     CI = {θᵢ : PL(θᵢ) ≥ L* − 0.5 × χ²₁,α}
 
 where `L*` is the log-likelihood at the MLE and `χ²₁,α = quantile(Chisq(1), α)`.
+
+The grid is split proportionally: points are allocated to each side of the MLE in
+proportion to the distance from the MLE to each boundary. Each half is scanned
+outward from the MLE so the inner optimizer always warm-starts near the peak.
 
 # Fields
 - `n_points` — number of grid points per parameter profile (default: 50)
@@ -73,14 +77,37 @@ function _uq(
     profiles = Vector{ProfileCurve{Float64}}(undef, n_params)
 
     for i in 1:n_params
-        grid    = range(lb[i], ub[i]; length = method.n_points) |> collect
-        lls     = Vector{Float64}(undef, method.n_points)
+        mle_val = p_mle[i]
+
+        # Proportional split: allocate grid points in proportion to distance from MLE to each boundary
+        frac_left = (mle_val - lb[i]) / (ub[i] - lb[i])
+        n_left    = max(1, round(Int, frac_left * (method.n_points - 1)) + 1)
+        n_right   = method.n_points - n_left + 1   # includes the shared MLE point
+
+        left_grid  = collect(range(lb[i],   mle_val; length = n_left))
+        right_grid = collect(range(mle_val, ub[i];   length = n_right))
+        grid       = [left_grid; right_grid[2:end]]  # deduplicate MLE point → n_points total
+
+        lls        = Vector{Float64}(undef, method.n_points)
         opt_params = Matrix{Float64}(undef, method.n_points, n_params)
 
-        p_warm = copy(p_mle)
-        for (j, v) in enumerate(grid)
+        # Evaluate the MLE grid point (index n_left)
+        lls[n_left], opt_params[n_left, :] =
+            _profileLL(sm, data, copy(p_mle), conditions, param_set_index, i, mle_val, lb, ub)
+
+        # Left scan: outward from MLE toward lb
+        p_warm = opt_params[n_left, :]
+        for j in (n_left - 1):-1:1
             lls[j], opt_params[j, :] =
-                _profileLL(sm, data, p_warm, conditions, param_set_index, i, v, lb, ub)
+                _profileLL(sm, data, p_warm, conditions, param_set_index, i, grid[j], lb, ub)
+            p_warm = opt_params[j, :]
+        end
+
+        # Right scan: outward from MLE toward ub
+        p_warm = opt_params[n_left, :]
+        for j in (n_left + 1):method.n_points
+            lls[j], opt_params[j, :] =
+                _profileLL(sm, data, p_warm, conditions, param_set_index, i, grid[j], lb, ub)
             p_warm = opt_params[j, :]
         end
 

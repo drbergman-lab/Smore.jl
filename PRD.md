@@ -173,7 +173,9 @@
   - Users do not call `_uq` directly; it is called by higher-level pipeline functions (API TBD)
 
 **Profile likelihood method:**
-- For each SM parameter `θ_i`: sweep a grid of `n_points` values over `[lb_i, ub_i]`, fix `θ_i`, re-optimize all other parameters, record the log-likelihood at each grid point
+- For each SM parameter `θ_i`: sweep a grid of `n_points` values anchored at the MLE, fix `θ_i`, re-optimize all other parameters, record the log-likelihood at each grid point
+  - Grid is split proportionally: `n_left` points from `lb_i` to `θ_i*` and `n_right` points from `θ_i*` to `ub_i`, where `n_left/n_right ≈ (θ_i* − lb_i)/(ub_i − θ_i*)` and `n_left + n_right − 1 = n_points` (the MLE point is shared)
+  - Each half is scanned outward from the MLE (warm-starting from the previous point), guaranteeing that the MLE value is evaluated and the inner optimizer always starts near the best-known solution
 - Confidence interval by Wilks' theorem: `CI = {θ_i : PL(θ_i) ≥ L* − 0.5 × χ²₁,α}`
   - `L*` = log-likelihood at the MLE (from `fitResult`)
   - `χ²₁,α = quantile(Chisq(1), confidence_level)` (from `Distributions.jl`)
@@ -194,7 +196,7 @@
 **Acceptance criteria:**
 - For a well-identified parameter, `ci_lower < fitted_value < ci_upper`.
 - For an unidentifiable parameter (flat likelihood), `ci_lower` and/or `ci_upper` is `nothing`.
-- Profile values at the MLE grid point match `fit_result.errors[cohort_index]` to numerical tolerance.
+- The MLE value is always a grid point; its profile LL matches `reference_ll` to optimizer tolerance.
 
 **Future (not in v0):**
 - Adaptive profile grid that expands toward the CI boundary (port of MATLAB "slowly expanding" algorithm).

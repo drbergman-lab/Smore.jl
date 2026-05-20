@@ -262,7 +262,8 @@ end
 # ── Profile likelihood ────────────────────────────────────────────────────────
 
 @testset "ProfileLikelihood" begin
-    t = collect(0.0:0.5:5.0)
+    # t range extends to 50 so the curve saturates at K — both r and K are well-identified
+    t = collect(0.0:5.0:50.0)
     p_true = [0.6, 4.0]
     μ_true = _logistic(t, p_true, nothing)
     data   = CMData(μ = vec(μ_true), σ = 0.05 .* ones(length(μ_true)), times = t)
@@ -279,16 +280,20 @@ end
     @test length(uq.profiles) == 2
 
     for pc in uq.profiles
-        # Profile LL at peak: cannot exceed MLE LL; grid resolution means it may be slightly below
-        peak_ll = maximum(pc.log_likelihoods)
-        @test peak_ll <= pc.reference_ll + 1e-10
-        @test pc.reference_ll - peak_ll < 0.5
+        # MLE value is always a grid point; its profile LL should match reference_ll to optimizer tolerance
+        mle_val    = result.parameters[1, pc.parameter_index]
+        mle_idx    = findfirst(≈(mle_val; atol = 1e-10), pc.profile_values)
+        @test mle_idx !== nothing
+        @test pc.reference_ll - pc.log_likelihoods[mle_idx] < 1e-4
 
-        # CI should bracket the fitted value
+        # Profile LL at any grid point cannot exceed the MLE LL
+        @test maximum(pc.log_likelihoods) <= pc.reference_ll + 1e-6
+
+        # Well-identified parameters must have finite CI bounds that bracket the MLE
         fitted_val = result.parameters[1, pc.parameter_index]
-        if pc.ci_lower !== nothing && pc.ci_upper !== nothing
-            @test pc.ci_lower < fitted_val < pc.ci_upper
-        end
+        @test pc.ci_lower !== nothing
+        @test pc.ci_upper !== nothing
+        @test pc.ci_lower < fitted_val < pc.ci_upper
     end
 
     # Unbounded prior → warning + ArgumentError

@@ -279,19 +279,67 @@ result = fitSurrogate(sm, data, P0, prior; save_path = "fit.jld2", serializer = 
 
 ---
 
-## SMoReGloS Features (Future)
+## SMoReGloS Features
 
-> Implementation not yet started. Specification will be added when work begins.
+---
 
-**Feature: Sensitivity Analysis of SM Outputs**
-- `runSensitivity(sm, fitResults, cmBounds, method; conditions, outputFn, parallel) -> SensitivityResult`
-- `method` dispatch: `EFAST(...)`, `Morris(...)`
-- Implementation: wrap `GlobalSensitivity.jl` — evaluate the SM as a callable at the required parameter samples, pass results to the GSA library for index computation
-- `outputFn::Function` — maps SM prediction matrix → scalar(s) for sensitivity; default = final time point of each variable
-- `SensitivityResult` wraps method-specific GSA result plus raw prediction array
+### Feature: Sensitivity Analysis of CM Outputs
 
-**Feature: Lift Sensitivity to CM Parameter Space**
-- Given SM sensitivity indices, propagate back through the SM parameter → CM parameter mapping to obtain CM-space sensitivity
+**One-line description:** GSA of CM outputs with respect to CM parameters, using the SM as a fast CM proxy.
+
+**Priority:** Must-have
+
+**Behavioral specification:**
+- `runSensitivity(sm, uqResults, cm_params, cm_prior, method; times, conditions, outputFn, n_sm_samples, rng) -> SensitivityResult`
+  - `sm::AbstractSurrogateModel` — the fitted surrogate model
+  - `uqResults::Vector{ProfileLikelihoodResult}` — one profile likelihood UQ result per CM parameter set (cohort)
+  - `cm_params::AbstractMatrix` — CM parameter values at each cohort `[n_cohorts × n_cm_params]`
+  - `cm_prior::ParameterPrior` — CM parameter distributions/bounds for the GSA sweep; full distributions are used via inverse-CDF transform
+  - `method::AbstractGSAMethod` — `EFAST(n_samples)` or `Morris(num_trajectory, ...)`
+  - `times::AbstractVector` — time grid for SM evaluation (required keyword)
+  - `conditions::ConditionSpec` — experimental conditions (default: `ConditionSpec()`)
+  - `outputFn::Function` — maps SM prediction `[n_times × n_outputs]` → `Vector{Float64}`; default: last time point of each output variable
+  - `n_sm_samples::Int` — LHS draws per CM parameter point to average over SM parameter uncertainty (default: 16)
+  - `rng::AbstractRNG` — RNG for LHS sampling (default: `Random.default_rng()`)
+- **Algorithm:** For each CM parameter vector `θ` that the GSA algorithm requires:
+  1. Apply inverse-CDF to unit-cube input `u`: `θ_CM[i] = quantile(cm_prior.distributions[i], u[i])`
+  2. Find nearest known cohort in `cm_params` (Euclidean distance)
+  3. Use that cohort's profile likelihood CI bounds as the SM parameter box; fall back to fit bounds when CI is `nothing`
+  4. LHS-sample `n_sm_samples` points within the SM parameter box
+  5. Evaluate SM at each LHS draw; return mean `outputFn` result
+- This mirrors MATLAB `sampleFromSMProfiles.m`.
+- `GlobalSensitivity.gsa` is called with `[[0, 1] for each CM param]` as bounds (ICDF is inside the callable).
+
+**Types:**
+- `abstract type AbstractGSAMethod end`
+- `EFAST(; n_samples=1000) <: AbstractGSAMethod` — wraps `GlobalSensitivity.eFAST`; computes S1 and ST
+- `Morris(; num_trajectory=10, p_steps=nothing, total_num_trajectory=nothing) <: AbstractGSAMethod` — computes µ* elementary effects; no ST
+- `SensitivityResult{T<:Real}`:
+  - `method::AbstractGSAMethod`
+  - `cm_parameter_names::Vector{String}` — from `cm_prior.names`
+  - `output_labels::Vector{String}` — one per `outputFn` element
+  - `S1::Matrix{T}` — first-order indices `[n_cm_params × n_outputs]`
+  - `ST::Union{Nothing, Matrix{T}}` — total-order indices; `nothing` for Morris
+  - `gsa_result::Any` — raw `GlobalSensitivity.jl` result
+
+**Acceptance criteria:**
+- `runSensitivity(sm, uqResults, cm_params, cm_prior, EFAST(); times=t)` returns `SensitivityResult` with `size(S1) == (n_cm_params, n_outputs)` and `ST !== nothing`.
+- `runSensitivity(sm, uqResults, cm_params, cm_prior, Morris(); times=t)` returns `SensitivityResult` with `ST === nothing`.
+- When a profile CI bound is `nothing`, the implementation falls back to the fit bounds without error.
+- Custom `outputFn` returning a length-2 vector produces `size(S1) == (n_cm_params, 2)`.
+
+**Future (not in v1):**
+- Richer CM parameter interpolation (linear, RBF) instead of nearest-neighbor.
+- Multi-condition averaging (v1 uses first condition only).
+- Adaptive n_sm_samples based on CI width.
+
+---
+
+### Feature: Lift Sensitivity to CM Parameter Space (Future)
+
+> Not yet implemented. Specification will be added when work begins.
+
+- Given SM sensitivity indices, propagate back through the SM parameter → CM parameter mapping to obtain CM-space sensitivity.
 
 ---
 

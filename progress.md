@@ -87,3 +87,36 @@ The `rng` keyword is not supported in the installed version. For reproducibility
 
 ### Status
 Branch `feature/smorebase-implementation`. All 11 stub files implemented, `sampling.jl` added, `SMoReBase.jl` updated. All tests pass (`julia --project=. -e 'using Pkg; Pkg.test()'`). Ready to open PR.
+
+---
+
+## Session: SMoReGloS — `runSensitivity` (2026-05-20)
+
+### Goal
+Implement `runSensitivity` in SMoReGloS: GSA of CM output with respect to CM parameters, using the SM as a fast proxy for the CM.
+
+### Key Design Decisions
+
+**Sensitivity is of CM output to CM parameters (not SM parameters)**
+Initial plan considered varying SM parameters directly. Clarified with user: the SM acts as a fast CM proxy. For any CM parameter vector requested by the GSA algorithm, the SM is evaluated by (1) interpolating SM parameter CI bounds from the nearest known cohort, (2) LHS-sampling within the resulting box, (3) averaging SM outputs over LHS draws. This mirrors MATLAB `sampleFromSMProfiles.m`.
+
+**ICDF transform inside the callable; unit bounds to GlobalSensitivity.jl**
+`ParameterPrior` stores full `Distributions.jl` distributions for CM parameters. The callable `f(u)` accepts `u ∈ [0,1]^n_cm` and applies `θ_CM[i] = quantile(cm_prior.distributions[i], u[i])` (inverse CDF). `GlobalSensitivity.gsa` is given `[[0.0, 1.0] for _ in 1:n_cm]` as bounds. This correctly handles non-uniform CM priors for both EFAST and Morris.
+
+**Nearest-neighbor interpolation of CI bounds (v1)**
+For arbitrary CM parameter vectors, the CI bounds are taken from the closest known cohort (Euclidean distance in CM parameter space). No interpolation library needed; the inner loop is O(n_cohorts) and n_cohorts is typically small. Richer interpolation (linear, RBF) deferred.
+
+**`LatinHypercubeSample(rng=rng)` works in QuasiMonteCarlo 0.3.x**
+The progress note from the SMoReBase session was outdated. The installed QMC version (`sBroe`, v0.3.x) does support `LatinHypercubeSample(rng=...)` via `@kwdef`.
+
+**`_runSensitivity` takes `n_cm::Int`, not bounds**
+Since bounds are always `[0,1]^n_cm` (ICDF is inside the callable), the internal dispatch functions construct unit bounds from `n_cm` directly. No bounds need to be threaded through from `runSensitivity`.
+
+**Morris `total_num_trajectory` default**
+When `nothing`, we pass `10 × num_trajectory` to `GlobalSensitivity.Morris`. This matches GlobalSensitivity.jl's effective default and makes the behavior explicit.
+
+**`ST = nothing` for Morris**
+Morris does not compute total-order indices; `SensitivityResult.ST` is `Union{Nothing, Matrix{T}}` to accommodate this cleanly.
+
+### Status
+Branch `feature/smoregloss-run-sensitivity`. All 6 source files implemented, module and Project.toml updated. All 5 test sets pass (20 assertions). Ready to open PR.

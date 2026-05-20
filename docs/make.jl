@@ -1,10 +1,10 @@
-using SMoRe
+using SMoReVerse
 using Documenter
 
-DocMeta.setdocmeta!(SMoRe, :DocTestSetup, :(using SMoRe); recursive=true)
+DocMeta.setdocmeta!(SMoReVerse, :DocTestSetup, :(using SMoReVerse); recursive=true)
 
 makedocs(;
-    modules=[SMoRe],
+    modules=[SMoReVerse],
     authors="Daniel Bergman <danielrbergman@gmail.com> and contributors",
     sitename="SMoReVerse.jl",
     format=Documenter.HTML(;

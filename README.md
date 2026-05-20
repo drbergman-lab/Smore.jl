@@ -75,5 +75,5 @@ fit = fitSurrogate(sm, data, P0, bounds)
 - [ ] `buildPosterior` — posterior on CM parameter space given data + SM UQ
 
 **SMoReGloS**
-- [ ] `runSensitivity` — EFAST and Morris sensitivity of SM outputs to CM parameters (via `GlobalSensitivity.jl`)
+- [x] `runSensitivity` — EFAST and Morris sensitivity of CM outputs to CM parameters, using SM as fast CM proxy (via `GlobalSensitivity.jl`)
 - [ ] Lift SM sensitivity to CM parameter space

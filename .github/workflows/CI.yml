@@ -67,6 +67,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using SMoRe
-          DocMeta.setdocmeta!(SMoRe, :DocTestSetup, :(using SMoRe); recursive=true)
-          doctest(SMoRe)
+          using SMoReVerse
+          DocMeta.setdocmeta!(SMoReVerse, :DocTestSetup, :(using SMoReVerse); recursive=true)
+          doctest(SMoReVerse)

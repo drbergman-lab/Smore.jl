@@ -208,3 +208,24 @@ Multiple `barplot!` calls at the same x positions, each specifying `dodge` (inte
 
 ### Status
 Branch `feature/makie-extensions`. All files written; no tests added (Makie is a large dependency and not suitable for the test suite). The `barplot!` `n_dodge` keyword should be verified against the installed Makie version before the first live use. Ready for review.
+
+---
+
+## Session: RecipesBase → Package Extension (2026-05-21)
+
+### Goal
+Move the RecipesBase plot recipes from direct dependencies to package extensions (`SMoReBasePlotsExt`, `SMoReGloSPlotsExt`), so that all plotting backends (Plots.jl and Makie) are uniformly optional.
+
+### Key Design Decisions
+
+**`SMFitPlot` stays in the main package**
+`SMFitPlot` is a plain struct that users construct before calling any plot function — both the Plots and Makie extensions dispatch on it. If the struct lived in the extension, Makie-only users would need to load RecipesBase just to construct it. The struct stays in `src/plots/fit_recipe.jl` and is exported from `SMoReBase`; only the `@recipe` implementations move to the extension.
+
+**`using RecipesBase` removed from module entrypoints**
+`SMoReBase.jl` and `SMoReGloS.jl` no longer `using RecipesBase`. Recipe registration happens inside the extension modules when the user loads RecipesBase (via any Plots-compatible backend). Tests already `using RecipesBase` at the top, so the extension fires automatically during test runs.
+
+**`_evaluate` accessed via `SMoReBase._evaluate` in the extension**
+`using SMoReBase` in the extension gives only exported symbols. The fit recipe calls `SMoReBase._evaluate(...)` with the explicit module prefix, consistent with the ODE extension pattern.
+
+### Status
+Branch `feature/plot-extensions`. All files written. Existing tests unchanged — `using RecipesBase` in each test file triggers the extension. Ready for review.

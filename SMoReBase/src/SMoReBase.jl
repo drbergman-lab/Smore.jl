@@ -7,7 +7,6 @@ using Optimization
 using OptimizationOptimJL
 using QuasiMonteCarlo
 using Random
-using RecipesBase
 using Statistics
 
 # Types
@@ -30,10 +29,8 @@ include("profile/profile.jl")
 # Prediction sampling
 include("sampling.jl")
 
-# Plotting recipes (RecipesBase; backend-agnostic)
+# SMFitPlot wrapper (plot struct only; recipe in SMoReBasePlotsExt)
 include("plots/fit_recipe.jl")
-include("plots/profile_recipe.jl")
-include("plots/sampling_recipe.jl")
 
 # Exports — types
 export AbstractCMData, CMData

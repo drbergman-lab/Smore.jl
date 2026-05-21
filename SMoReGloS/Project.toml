@@ -8,14 +8,15 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 GlobalSensitivity = "af5da776-676b-467e-8baf-acd8249e4f0f"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 SMoReBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [extensions]
 SMoReGloSMakieExt = "Makie"
+SMoReGloSPlotsExt = "RecipesBase"
 
 [compat]
 Distributions = "0.25.125"

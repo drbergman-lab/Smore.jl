@@ -4,7 +4,6 @@ using Distributions
 using GlobalSensitivity
 using Interpolations
 using Random
-using RecipesBase
 using SMoReBase
 
 include("sensitivity/methods.jl")
@@ -16,8 +15,6 @@ include("sensitivity/efast.jl")
 include("sensitivity/morris.jl")
 include("sensitivity/sensitivity.jl")
 
-# Plotting recipes (RecipesBase; backend-agnostic)
-include("plots/sensitivity_recipe.jl")
 
 export runSensitivity
 export EFAST

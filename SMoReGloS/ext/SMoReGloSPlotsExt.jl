@@ -1,3 +1,9 @@
+module SMoReGloSPlotsExt
+
+using SMoReGloS
+using SMoReBase
+using RecipesBase
+
 # ── SensitivityResult recipe ──────────────────────────────────────────────────
 
 """
@@ -20,8 +26,8 @@ plot(sens_result; show_ST=false)   # S1 only
 ```
 """
 @recipe function f(r::SensitivityResult)
-    S1 = sensitivity_S1(r)   # [n_outputs × n_cm_params]
-    ST = sensitivity_ST(r)   # [n_outputs × n_cm_params] or nothing
+    S1 = sensitivity_S1(r)
+    ST = sensitivity_ST(r)
 
     show_ST = pop!(plotattributes, :show_ST, true)
 
@@ -62,3 +68,5 @@ plot(sens_result; show_ST=false)   # S1 only
         end
     end
 end
+
+end # module

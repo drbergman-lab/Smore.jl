@@ -337,6 +337,56 @@ result = fitSurrogate(sm, data, P0, prior; save_path = "fit.jld2", serializer = 
 
 ---
 
+### Feature: Plotting Recipes (RecipesBase.jl)
+
+**One-line description:** Backend-agnostic plot recipes for every pipeline result type so users can assess fits, UQ, prediction uncertainty, and sensitivity rankings with `plot(result)`.
+
+**Priority:** Should-have
+
+**Behavioral specification:**
+
+`RecipesBase.jl` is added as a direct dependency to `SMoReBase` and `SMoReGloS`. Users load any Plots.jl-compatible backend; the recipes activate automatically. `SampledPredictions` gains a `times` field so `plot(samples)` is standalone.
+
+Four recipe targets:
+
+| Type | Usage | What it shows |
+|------|-------|---------------|
+| `SMFitPlot` (wrapper struct) | `plot(SMFitPlot(sm, data, fit))` | SM fit line overlaid on CM data ± σ; one subplot per output variable |
+| `SMFitResult` | `plot(fit_result)` | Fitted parameter values per param_set (x-axis = param set index), colored by convergence; one subplot per SM parameter |
+| `ProfileLikelihoodResult` / `ProfileCurve` | `plot(uq_result)` | Profile LL curves with CI threshold, MLE, and CI bound vlines; one subplot per SM parameter |
+| `SampledPredictions` | `plot(sampled_preds)` | Quantile ribbon (default 5th–95th) + median line; one subplot per output variable |
+| `SensitivityResult` | `plot(sens_result)` | Grouped bar chart: x = CM parameters, bars = S1 (and ST if available and `show_ST=true`) per output |
+
+**`SMFitResult` recipe details:**
+- One subplot per SM parameter (`layout = (1, n_sm_params)`)
+- X-axis: param set index (1…n_param_sets); Y-axis: fitted parameter value
+- Two series per subplot (omitted if empty): converged points in `#0072B2` (blue), non-converged in `#D55E00` (orange) — colorblind-friendly (Wong/Paul Tol palette)
+- Legend labels only shown in first subplot to avoid repetition
+
+**`SampledPredictions` struct change:**
+- Add `times::Union{Nothing,Vector{T}}` field
+- `sampleSMPredictions` populates it from `uqResult.times`
+- `plot(sp)` errors with a descriptive message if `times === nothing`
+
+**Custom plot attributes:**
+- `band_quantile::Float64 = 0.9` on `SampledPredictions` — controls ribbon width (0.9 → 5th–95th percentile)
+- `show_ST::Bool = true` on `SensitivityResult` — whether to add ST bars alongside S1
+- `param_set_index::Int = 1`, `condition_index::Int = 1` on `SMFitPlot`
+
+**Testing:**
+- `RecipesBase.apply_recipe(Dict{Symbol,Any}(), obj)` exercises each recipe without a backend
+- Tests added to `SMoReBase/test/runtests.jl` and `SMoReGloS/test/runtests.jl`
+
+**Acceptance criteria:**
+- `plot(SMFitPlot(sm, data, fit))` produces one subplot per output variable with SM fit line and CM data scatter ± error bars.
+- `plot(fit_result)` produces one subplot per SM parameter with converged/non-converged points color-coded.
+- `plot(uq_result)` produces one subplot per profiled parameter with threshold dashed line, MLE vline, and CI vlines (omitted when `nothing`).
+- `plot(sampled_preds)` produces one subplot per output variable with a ribbon and median line.
+- `plot(sens_result)` produces a grouped bar chart with CM parameter names on x-axis.
+- All `apply_recipe` calls return non-empty results without errors.
+
+---
+
 ### Feature: Lift Sensitivity to CM Parameter Space (Future)
 
 > Not yet implemented. Specification will be added when work begins.

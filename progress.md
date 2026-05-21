@@ -148,3 +148,36 @@ The existing ProfileLikelihood test used t ∈ [0, 5], which leaves K completely
 
 ### Status
 All SMoReBase tests pass (16 assertions in ProfileLikelihood). Branch `feature/mle-anchored-profile` ready for review.
+
+---
+
+## Session: Plotting Recipes (RecipesBase.jl) (2026-05-21)
+
+### Goal
+Add backend-agnostic plot recipes to `SMoReBase` and `SMoReGloS` so users can assess every pipeline stage: fit quality, profile likelihood curves, prediction uncertainty bands, and sensitivity bar charts.
+
+### Key Design Decisions
+
+**RecipesBase as a direct dep (not an extension)**
+RecipesBase.jl is ~60 lines with zero transitive dependencies. It is explicitly designed to be included as a direct dep so that `plot(result)` works as soon as any Plots.jl-compatible backend is loaded. Packages like Distributions.jl, DataFrames.jl, and StatsBase.jl all follow this pattern. Using a package extension (activated by Plots.jl) would be heavier and would break the dispatch chain when users call `plot(result)` without loading Plots explicitly first.
+
+**`SMFitPlot` wrapper struct instead of `@userplot`**
+`@userplot` is a Plots.jl macro (not RecipesBase). For the multi-arg fit recipe `(sm, data, fit)`, a plain struct `SMFitPlot` is used. Users call `plot(SMFitPlot(sm, data, fit))`. This is idiomatic RecipesBase and requires no Plots.jl at recipe definition time.
+
+**Standalone `plot(SMFitResult)` for parameter diagnostics**
+`SMFitResult` holds all param_sets in one struct (`parameters` is `[n_param_sets × n_sm_params]`). The recipe shows fitted values on y, param_set index on x, one subplot per SM parameter, colored by convergence. Colorblind-friendly colors: `#0072B2` (converged) / `#D55E00` (not converged) from the Wong/Paul Tol palette. Two separate series handle the two states so Plots.jl handles color consistently; empty series are omitted.
+
+**`SampledPredictions.times` field added**
+`sampleSMPredictions` already uses `uqResult.times` internally; adding it to the struct is a minimal, zero-breaking change that enables `plot(sampled)` to work standalone without passing times externally. The field is `Union{Nothing,Vector{T}}` to handle future construction paths where times may be absent.
+
+**`ProfileLikelihoodResult` delegates to `ProfileCurve` recipe**
+The top-level recipe sets `layout := (1, n_params)` and uses `@series begin; subplot := i; pc; end` to delegate each panel to the `ProfileCurve` recipe. Plots.jl's recipe dispatch chain handles the second level automatically.
+
+**Sensitivity bar chart: CM parameters on x-axis**
+With `S1 :: [n_outputs × n_cm_params]` (native GlobalSensitivity.jl layout), the most common presentation puts CM parameter names on the x-axis and groups bars by output. ST bars are shown alongside S1 bars (same x positions, lighter fill) when `show_ST=true` (default) and `sensitivity_ST` is not `nothing`.
+
+### Open Questions
+- None; design is fully specified and approved.
+
+### Status
+Branch `feature/plot-recipes`. All 9 new test sets pass, no regressions. Ready for review.

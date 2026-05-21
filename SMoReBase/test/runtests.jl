@@ -1,5 +1,6 @@
 using SMoReBase
 using Distributions
+using RecipesBase
 using Test
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -324,6 +325,7 @@ end
     @test samples isa SampledPredictions
     @test size(samples.parameters)  == (2, 50)
     @test size(samples.predictions) == (length(t), 1, 50)
+    @test samples.times == t
 
     # Parameters are drawn from the profile grid, so they lie within the prior bounds
     lb = SMoReBase._lowerBounds(result.prior)
@@ -331,4 +333,72 @@ end
     for i in 1:2
         @test all(lb[i] .<= samples.parameters[i, :] .<= ub[i])
     end
+end
+
+# ── Plotting recipes ───────────────────────────────────────────────────────────
+
+@testset "Plots — SMFitResult" begin
+    t      = collect(0.0:0.5:5.0)
+    p_true = [0.6, 4.0]
+    μ_true = _logistic(t, p_true, nothing)
+    data   = CMData(μ = vec(μ_true), σ = 0.05 .* ones(length(μ_true)), times = t)
+    sm     = AnalyticalSurrogateModel(fn = _logistic)
+    prior  = ParameterPrior([0.01, 0.5], [2.0, 10.0]; names = ["r", "K"])
+    result = fitSurrogate(sm, data, [0.5 5.0], prior)
+
+    # SMFitResult: one subplot per parameter × one series per convergence state
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), result)
+    @test !isempty(rds)
+    # 1 param_set all converged → 2 parameters × 1 converged series = 2 RecipeData
+    @test length(rds) == 2
+
+    # SMFitPlot: one series per output variable (fit line + data scatter = 2 series for 1 variable)
+    rds2 = RecipesBase.apply_recipe(Dict{Symbol,Any}(), SMFitPlot(sm, data, result))
+    @test !isempty(rds2)
+    @test length(rds2) == 2   # 1 variable × (fit + data) = 2 series
+end
+
+@testset "Plots — ProfileLikelihoodResult / ProfileCurve" begin
+    t      = collect(0.0:5.0:50.0)
+    p_true = [0.6, 4.0]
+    μ_true = _logistic(t, p_true, nothing)
+    data   = CMData(μ = vec(μ_true), σ = 0.05 .* ones(length(μ_true)), times = t)
+    sm     = AnalyticalSurrogateModel(fn = _logistic)
+    prior  = ParameterPrior([0.01, 0.5], [2.0, 10.0]; names = ["r", "K"])
+    result = fitSurrogate(sm, data, [0.5 5.0], prior)
+    uq     = SMoReBase._uq(sm, data, result, ProfileLikelihood(n_points = 20))
+
+    # ProfileLikelihoodResult: delegates to ProfileCurve recipe → 2 RecipeData (one per parameter)
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), uq)
+    @test length(rds) == 2
+
+    # ProfileCurve with both CI bounds: profile + hline + 2 vlines (MLE + lower + upper) = 5 series
+    pc  = uq.profiles[1]
+    rds_pc = RecipesBase.apply_recipe(Dict{Symbol,Any}(), pc)
+    # At minimum: profile LL + threshold hline + MLE vline = 3; CI adds 1–2 more
+    @test length(rds_pc) >= 3
+    # Both CI bounds present → 5 series total
+    if !isnothing(pc.ci_lower) && !isnothing(pc.ci_upper)
+        @test length(rds_pc) == 5
+    end
+end
+
+@testset "Plots — SampledPredictions" begin
+    t      = collect(0.0:0.5:5.0)
+    p_true = [0.6, 4.0]
+    μ_true = _logistic(t, p_true, nothing)
+    data   = CMData(μ = vec(μ_true), σ = 0.05 .* ones(length(μ_true)), times = t)
+    sm     = AnalyticalSurrogateModel(fn = _logistic)
+    prior  = ParameterPrior([0.01, 0.5], [2.0, 10.0]; names = ["r", "K"])
+    result = fitSurrogate(sm, data, [0.5 5.0], prior)
+    uq     = SMoReBase._uq(sm, data, result, ProfileLikelihood(n_points = 20))
+    samples = sampleSMPredictions(sm, uq; nSamples = 30)
+
+    # 1 output variable → 1 ribbon series
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), samples)
+    @test length(rds) == 1
+
+    # Missing times → error
+    sp_notimes = SampledPredictions(samples.parameters, samples.predictions, nothing)
+    @test_throws ErrorException RecipesBase.apply_recipe(Dict{Symbol,Any}(), sp_notimes)
 end

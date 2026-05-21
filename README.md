@@ -64,7 +64,8 @@ fit = fitSurrogate(sm, data, P0, bounds)
 - [x] UQ of SM parameters — `ProfileLikelihood` method; `_uq` internal dispatch; MLE-anchored grid with proportional split and outward warm-start
 - [x] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ
 - [x] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
-- [x] `SampledPredictions` — result type for prediction sampling
+- [x] `SampledPredictions` — result type for prediction sampling (stores `times` for standalone plotting)
+- [x] Plotting recipes (`RecipesBase.jl`) — `plot(SMFitPlot(sm, data, fit))`, `plot(fit_result)`, `plot(uq_result)`, `plot(sampled_preds)`
 
 ### Remaining
 
@@ -76,4 +77,5 @@ fit = fitSurrogate(sm, data, P0, bounds)
 
 **SMoReGloS**
 - [x] `runSensitivity` — EFAST and Morris sensitivity of CM outputs to CM parameters, using SM as fast CM proxy (via `GlobalSensitivity.jl`)
+- [x] Plotting recipes (`RecipesBase.jl`) — `plot(sens_result)` grouped bar chart of S1/ST indices
 - [ ] Lift SM sensitivity to CM parameter space

@@ -83,8 +83,10 @@ contiguous block in Julia's column-major memory.
 # Fields
 - `parameters` — sampled SM parameters `[n_sm_params × nSamples]`
 - `predictions` — SM predictions `[n_times × n_outputs × nSamples]`
+- `times` — time grid used for SM evaluation (`nothing` if no time axis)
 """
 struct SampledPredictions{T<:Real}
     parameters::Matrix{T}
     predictions::Array{T,3}
+    times::Union{Nothing,Vector{T}}
 end

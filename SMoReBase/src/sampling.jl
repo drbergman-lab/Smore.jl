@@ -100,6 +100,7 @@ correlations between parameters are ignored.
 `SampledPredictions` with:
 - `parameters` — `[n_sm_params × nSamples]`
 - `predictions` — `[n_times × n_outputs × nSamples]`
+- `times` — the time grid used for evaluation (copied from `uqResult.times`)
 
 # Example
 ```julia
@@ -127,5 +128,5 @@ function sampleSMPredictions(
         preds[:, :, s] = _evaluate(sm, times, params[:, s], cond_label)
     end
 
-    return SampledPredictions{Float64}(params, preds)
+    return SampledPredictions{Float64}(params, preds, times)
 end

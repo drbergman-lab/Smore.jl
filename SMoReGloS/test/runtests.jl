@@ -1,6 +1,7 @@
 using SMoReGloS
 using SMoReBase
 using Distributions
+using RecipesBase
 using Test
 using Random
 
@@ -131,4 +132,51 @@ end
     )
     @test result isa SensitivityResult
     @test all(isfinite, sensitivity_S1(result))
+end
+
+# ── Plotting recipes ───────────────────────────────────────────────────────────
+
+@testset "Plots — SensitivityResult (EFAST)" begin
+    rng    = Random.MersenneTwister(42)
+    result = runSensitivity(
+        _sm, _uq_list, _cm_sample, _cm_prior, EFAST(n_samples=500);
+        times = _t,
+        rng   = rng,
+    )
+
+    # EFAST has ST: default show_ST=true → 2 series (S1 + ST) for 1 output
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), result)
+    @test length(rds) == 2
+
+    # show_ST=false → 1 series (S1 only)
+    rds2 = RecipesBase.apply_recipe(Dict{Symbol,Any}(:show_ST => false), result)
+    @test length(rds2) == 1
+end
+
+@testset "Plots — SensitivityResult (Morris)" begin
+    rng    = Random.MersenneTwister(7)
+    result = runSensitivity(
+        _sm, _uq_list, _cm_sample, _cm_prior, Morris(num_trajectory=5);
+        times = _t,
+        rng   = rng,
+    )
+
+    # Morris has no ST → show_ST is irrelevant; always 1 series (S1)
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), result)
+    @test length(rds) == 1
+end
+
+@testset "Plots — SensitivityResult (multi-output)" begin
+    two_out_fn = pred -> [pred[1, 1], pred[end, 1]]
+    rng        = Random.MersenneTwister(99)
+    result = runSensitivity(
+        _sm, _uq_list, _cm_sample, _cm_prior, EFAST(n_samples=500);
+        times    = _t,
+        outputFn = two_out_fn,
+        rng      = rng,
+    )
+
+    # 2 outputs × (S1 + ST) = 4 series
+    rds = RecipesBase.apply_recipe(Dict{Symbol,Any}(), result)
+    @test length(rds) == 4
 end

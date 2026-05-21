@@ -387,6 +387,44 @@ Four recipe targets:
 
 ---
 
+### Feature: Makie Plot Extensions
+
+**One-line description:** Optional Makie extensions for `SMoReBase` and `SMoReGloS` that mirror every RecipesBase recipe using the Makie ecosystem (CairoMakie / GLMakie / WGLMakie), loaded automatically via Julia package extensions.
+
+**Priority:** Should-have
+
+**Behavioral specification:**
+
+`Makie` is added as a weak dependency to `SMoReBase` and `SMoReGloS`. The extension loads automatically when the user loads any Makie backend; it is completely invisible otherwise. Each extension defines `Makie.plot(result)` methods that return a `Makie.Figure` with the same multi-panel layout as the corresponding RecipesBase recipe.
+
+| Extension | Triggers on | Types covered |
+|-----------|------------|---------------|
+| `SMoReBaseMakieExt` | `Makie` | `SMFitPlot`, `SMFitResult`, `ProfileCurve`, `ProfileLikelihoodResult`, `SampledPredictions` |
+| `SMoReGloSMakieExt` | `Makie` | `SensitivityResult` |
+
+**`SMFitPlot`** — one `Axis` per output variable; `lines!` for SM fit, `errorbars!` + `scatter!` for CM data ± σ. Keywords: `param_set_index=1`, `condition_index=1`.
+
+**`SMFitResult`** — one `Axis` per SM parameter; `scatter!` colored by convergence (`#0072B2` converged, `#D55E00` not). Legend in first panel only.
+
+**`ProfileCurve`** — single `Axis`; `lines!` for profile LL, `hlines!` (dashed) for CI threshold, `vlines!` (solid) for MLE, `vlines!` (dotted, red) for CI bounds when non-`nothing`.
+
+**`ProfileLikelihoodResult`** — one `Axis` per profiled parameter; delegates to the `ProfileCurve` helper.
+
+**`SampledPredictions`** — one `Axis` per output variable; `band!` for quantile ribbon (default 5th–95th), `lines!` for median. Errors if `sp.times === nothing`. Keyword: `band_quantile=0.9`.
+
+**`SensitivityResult`** — single `Axis`; `barplot!` with dodge grouping; x-axis = CM parameter names, one dodge group per output; ST bars alongside S1 at reduced opacity when `show_ST=true` (default) and ST is non-`nothing`. Keyword: `show_ST=true`.
+
+**Acceptance criteria:**
+- Loading only `SMoReBase` (no Makie backend) does not error — extension remains optional.
+- `using CairoMakie, SMoReBase` triggers `SMoReBaseMakieExt`.
+- `Makie.plot(SMFitPlot(sm, data, fit))` returns a `Makie.Figure`.
+- `Makie.plot(uq_result)` returns a `Makie.Figure` with profile curves.
+- `Makie.plot(sampled_preds)` returns a `Makie.Figure` with ribbon + median.
+- `Makie.plot(sens_result)` returns a `Makie.Figure` with grouped bar chart.
+- Existing RecipesBase recipes are unaffected.
+
+---
+
 ### Feature: Lift Sensitivity to CM Parameter Space (Future)
 
 > Not yet implemented. Specification will be added when work begins.

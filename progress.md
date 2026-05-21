@@ -181,3 +181,30 @@ With `S1 :: [n_outputs × n_cm_params]` (native GlobalSensitivity.jl layout), th
 
 ### Status
 Branch `feature/plot-recipes`. All 9 new test sets pass, no regressions. Ready for review.
+
+---
+
+## Session: Makie Plot Extensions (2026-05-21)
+
+### Goal
+Add optional Makie ecosystem plot support to `SMoReBase` and `SMoReGloS` as Julia package extensions, mirroring every existing RecipesBase recipe without making Makie a hard dependency.
+
+### Key Design Decisions
+
+**`Makie` as weak dep, not `MakieCore`**
+`MakieCore` only provides the `@recipe` macro and abstract plot types. `Figure`, `Axis`, `lines!`, `scatter!`, `band!`, `barplot!`, `hlines!`, `vlines!`, `errorbars!`, `Legend`, etc. all live in `Makie`. The extensions create multi-panel figures, so `Makie` is the correct weak dep. All Makie backends (CairoMakie, GLMakie, WGLMakie) depend on and load `Makie`, so the extension fires for any backend.
+
+**Single extension per package, not two**
+An earlier idea proposed one `MakieCoreExt` (composable `@recipe` types) and one `MakieExt` (convenience figure builders). Rejected: both extensions would fire simultaneously when any backend is loaded (since backends load both MakieCore and Makie), creating redundancy. A single `MakieExt` per package using `Makie` as the weak dep provides both composability and convenience in one place.
+
+**`Makie.plot(result)` methods, not `@recipe` types**
+The Makie extensions define ordinary Julia methods `Makie.plot(r::SomeType; kwargs...) -> Figure` rather than `@recipe`-based custom plot types. This keeps the implementation simple and directly mirrors the RecipesBase recipes' return behavior. The `@recipe` approach would require restructuring each recipe as an observable-driven custom plot type drawing into a single axis — adding complexity without benefit for the initial implementation.
+
+**`barplot!` with dodge for sensitivity chart**
+Multiple `barplot!` calls at the same x positions, each specifying `dodge` (integer group index) and `n_dodge` (total groups). S1 and ST bars for the same output are interleaved: S1 at dodge=2v-1, ST at dodge=2v. ST bars use `alpha=0.45` for reduced opacity. The `n_dodge` keyword should be verified against the installed Makie version in the Manifest.
+
+### Open Questions
+- None; design approved.
+
+### Status
+Branch `feature/makie-extensions`. All files written; no tests added (Makie is a large dependency and not suitable for the test suite). The `barplot!` `n_dodge` keyword should be verified against the installed Makie version before the first live use. Ready for review.

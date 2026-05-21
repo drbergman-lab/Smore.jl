@@ -1,4 +1,4 @@
-# progress.md — SMoReVerse.jl Session Journal
+# progress.md — Smore.jl Session Journal
 
 > **Purpose:** Session-level decisions, rejected approaches, and open questions.
 > Unlike [PRD.md](PRD.md) (specification) and [README.md](README.md) (completion status), this file captures the *reasoning* behind decisions — things that would otherwise exist only in ended chat history.
@@ -8,12 +8,12 @@
 ## Session: Initialization — Package architecture and documentation (2026-05-19)
 
 ### Goal
-Scaffold the SMoReVerse.jl repo: rename it from SMoRe, define the monorepo structure, write documentation (README, CLAUDE.md, PRD, progress), and create stub source files. No implementation code in this session.
+Scaffold the Smore.jl repo: rename it from Smore, define the monorepo structure, write documentation (README, CLAUDE.md, PRD, progress), and create stub source files. No implementation code in this session.
 
 ### Key Design Decisions
 
 **Monorepo with three independent sub-packages**
-The original SMoReParS MATLAB repo has three major components (SM fitting, profile likelihood, sensitivity). Rather than a single flat package, SMoReVerse is structured as a monorepo where `SMoReBase`, `SMoReParS`, and `SMoReGloS` are each proper Julia packages with their own `Project.toml` and UUIDs, living under the repo root. The root `Project.toml` defines a `SMoReVerse` meta-package (like `DifferentialEquations.jl`) that re-exports all three, and uses Julia's `[workspace]` feature so they resolve locally. Each sub-package can be registered and split into its own repo independently when the time comes — no structural refactor needed, just move the directory.
+The original SMoReParS MATLAB repo has three major components (SM fitting, profile likelihood, sensitivity). Rather than a single flat package, Smore is structured as a monorepo where `SmoreBase`, `SmoreFit`, and `SmoreGSA` are each proper Julia packages with their own `Project.toml` and UUIDs, living under the repo root. The root `Project.toml` defines a `Smore` meta-package (like `DifferentialEquations.jl`) that re-exports all three, and uses Julia's `[workspace]` feature so they resolve locally. Each sub-package can be registered and split into its own repo independently when the time comes — no structural refactor needed, just move the directory.
 
 **"Complex model" not "ABM"**
 The package is named around the concept of a slow, expensive "complex model" (CM) rather than specifically an agent-based model. In all known use cases the CM is an ABM, but the framework is general. Field names, type names, and documentation use "CM" consistently.
@@ -25,39 +25,39 @@ Consistent with ModelManager.jl. `camelCase` distinguishes function calls (`fitS
 `μ`, `σ`, `Σ` for mean, standard deviation, and covariance. Julia supports Unicode identifiers and mathematical notation is standard practice in scientific Julia packages (e.g., Turing.jl, DifferentialEquations.jl). Makes the correspondence to mathematical notation explicit.
 
 **`OrdinaryDiffEq` as a weak dependency (package extension)**
-The full `OrdinaryDiffEq.jl` is a large transitive dependency. For users who only use `AnalyticalSurrogateModel`, there is no reason to pay that cost. The ODE-solving logic lives in `ext/SMoReBaseOrdinaryDiffEqExt.jl` and activates only when the user loads `using OrdinaryDiffEq`. This follows the Julia 1.9+ package extensions mechanism.
+The full `OrdinaryDiffEq.jl` is a large transitive dependency. For users who only use `AnalyticalSurrogateModel`, there is no reason to pay that cost. The ODE-solving logic lives in `ext/SmoreBaseOrdinaryDiffEqExt.jl` and activates only when the user loads `using OrdinaryDiffEq`. This follows the Julia 1.9+ package extensions mechanism.
 
 **`ProfileLikelihood` as one UQ method under `AbstractUQMethod`**
-Profile likelihood is the first UQ method implemented (ported from MATLAB SMoReParS), but the API is designed for extensibility. The internal dispatch function `_uq(sm, data, fitResult, method; ...)` takes the method as a type argument. Users will call higher-level pipeline functions (API TBD in a future session) rather than `_uq` directly.
+Profile likelihood is the first UQ method implemented (ported from MATLAB SmoreFit), but the API is designed for extensibility. The internal dispatch function `_uq(sm, data, fitResult, method; ...)` takes the method as a type argument. Users will call higher-level pipeline functions (API TBD in a future session) rather than `_uq` directly.
 
 **Confidence interval formula: Wilks' theorem**
 `CI = {θ_i : PL(θ_i) ≥ L* − 0.5 × χ²₁,α}` — verified against Wilks (1938). By the theorem, `−2(PL(θ_i) − L*) ~ χ²_1` asymptotically, so the threshold `L* − 0.5 × quantile(Chisq(1), α)` correctly identifies the confidence region at level `α`. For 95%: threshold = `L* − 1.92`.
 
-**`GlobalSensitivity.jl` for sensitivity analysis (SMoReGloS)**
-Rather than native EFAST/Morris implementations, SMoReGloS will wrap `GlobalSensitivity.jl`. The SM is callable (unlike the CM which is external), so the GSA library's interface fits naturally. This avoids reimplementing FFT-based EFAST index computation. The only caveat: `GlobalSensitivity.jl` uses a function-evaluation interface; SMoReGloS provides the wrapper that calls `_evaluate(sm, ...)` at the required sample points.
+**`GlobalSensitivity.jl` for sensitivity analysis (SmoreGSA)**
+Rather than native EFAST/Morris implementations, SmoreGSA will wrap `GlobalSensitivity.jl`. The SM is callable (unlike the CM which is external), so the GSA library's interface fits naturally. This avoids reimplementing FFT-based EFAST index computation. The only caveat: `GlobalSensitivity.jl` uses a function-evaluation interface; SmoreGSA provides the wrapper that calls `_evaluate(sm, ...)` at the required sample points.
 
 **`sampleSMPredictions` is not a sensitivity method**
-LHS-based Monte Carlo sampling within the profile-likelihood CI region is uncertainty propagation (spreading SM parameter uncertainty to prediction uncertainty), not global sensitivity analysis. It lives in `SMoReBase` as a utility, not in `SMoReGloS`.
+LHS-based Monte Carlo sampling within the profile-likelihood CI region is uncertainty propagation (spreading SM parameter uncertainty to prediction uncertainty), not global sensitivity analysis. It lives in `SmoreBase` as a utility, not in `SmoreGSA`.
 
 **`GaussianNLL` only (no separate `WeightedSSE`)**
 The default loss is `GaussianNLL`. `WeightedSSE` (sum of squared errors divided by variance) is a special case of `GaussianNLL` (dropping the log-determinant term, which is constant when `σ` does not depend on `p`). Adding a separate type would create ambiguity. Power users can supply a `CustomLoss` if they want a different form.
 
 ### Open Questions
 
-- **Higher-level pipeline API**: users should call something like `runSMoReBase(sm, data, ...)` that orchestrates fitting + UQ in one call. What does this API look like? What keyword arguments does it expose? Defer to implementation session.
+- **Higher-level pipeline API**: users should call something like `runSmoreBase(sm, data, ...)` that orchestrates fitting + UQ in one call. What does this API look like? What keyword arguments does it expose? Defer to implementation session.
 - **`CMData` shape for multiple cohorts and conditions**: should cohort/condition be axes of the data arrays (requiring a 4D structure), or should `CMData` hold a single (condition × time × output) block and be used in a vector-per-cohort pattern? The current spec is deliberately vague on this — revisit when implementing `CMData`.
 - **`SMUQResult` abstract type**: should `ProfileLikelihoodResult` subtype `AbstractSMUQResult`, or just be a standalone struct? If `Bootstrap` and `MCMC` UQ methods are added, a common abstract type would enable generic downstream code.
-- **Repo rename timing**: the directory `~/.julia/dev/SMoRe` should be renamed to `~/.julia/dev/SMoReVerse` and the GitHub repo renamed. Do this before the next implementation session.
+- **Repo rename timing**: the directory `~/.julia/dev/Smore` should be renamed to `~/.julia/dev/Smore` and the GitHub repo renamed. Do this before the next implementation session.
 
 ### Status
-Branch `claude/funny-mendeleev-b87754`. All documentation files written, stub source structure created. No implementation code. Ready for first implementation session on `SMoReBase`.
+Branch `claude/funny-mendeleev-b87754`. All documentation files written, stub source structure created. No implementation code. Ready for first implementation session on `SmoreBase`.
 
 ---
 
-## Session: SMoReBase Implementation (2026-05-19)
+## Session: SmoreBase Implementation (2026-05-19)
 
 ### Goal
-Implement all SMoReBase stub files (types, fitting, profile likelihood, sampling, ODE extension) and tests.
+Implement all SmoreBase stub files (types, fitting, profile likelihood, sampling, ODE extension) and tests.
 
 ### Key Design Decisions
 
@@ -65,7 +65,7 @@ Implement all SMoReBase stub files (types, fitting, profile likelihood, sampling
 Decided in planning: `ConditionSpec` wraps `Vector{String}`. The SM function encodes the numeric effect of each condition internally. Eliminates the `ConditionSpec.values::Matrix` field from the original PRD.
 
 **`ParameterBounds` → `ParameterPrior`**
-Generalized from box bounds to a `Vector{<:UnivariateDistribution}`. Box bounds are represented as `Uniform(lb, ub)`. Convenience constructor `ParameterPrior(lower, upper; names)` wraps pairs into `Uniform`. Optimization bounds derived from `support(d)` via `_lowerBounds`/`_upperBounds`. This makes the type directly useful for SMoReParS posterior inference.
+Generalized from box bounds to a `Vector{<:UnivariateDistribution}`. Box bounds are represented as `Uniform(lb, ub)`. Convenience constructor `ParameterPrior(lower, upper; names)` wraps pairs into `Uniform`. Optimization bounds derived from `support(d)` via `_lowerBounds`/`_upperBounds`. This makes the type directly useful for SmoreFit posterior inference.
 
 **"cohort" → "param_set" throughout**
 More precise terminology: one param_set = one CM parameter vector whose runs generated training data for the SM. `CMData` axis 1 is `n_param_sets`; field name `param_set_labels`.
@@ -80,20 +80,20 @@ Resolves the open question from the init session. 2-D and 3-D inputs are promote
 `_profileLL` builds a reduced `(n_params-1)`-vector objective: captures the full objective in a closure, projects free parameters back into the full space, fixes `p[fixed_idx] = fixed_val`. The inner closure correctly handles `ForwardDiff.Dual` elements by using `T = eltype(p_free)` for the full parameter vector.
 
 **`sampleSMPredictions` v0: first condition only**
-LHS sampling evaluates the SM at `conditions[1]` only. Multi-condition sampling deferred to when `SMoReParS` integration clarifies the expected output shape.
+LHS sampling evaluates the SM at `conditions[1]` only. Multi-condition sampling deferred to when `SmoreFit` integration clarifies the expected output shape.
 
 **QuasiMonteCarlo 0.3.x: no `rng` kwarg for `LatinHypercubeSample`**
 The `rng` keyword is not supported in the installed version. For reproducibility, users should call `Random.seed!` before `sampleSMPredictions`.
 
 ### Status
-Branch `feature/smorebase-implementation`. All 11 stub files implemented, `sampling.jl` added, `SMoReBase.jl` updated. All tests pass (`julia --project=. -e 'using Pkg; Pkg.test()'`). Ready to open PR.
+Branch `feature/smorebase-implementation`. All 11 stub files implemented, `sampling.jl` added, `SmoreBase.jl` updated. All tests pass (`julia --project=. -e 'using Pkg; Pkg.test()'`). Ready to open PR.
 
 ---
 
-## Session: SMoReGloS — `runSensitivity` (2026-05-20)
+## Session: SmoreGSA — `runSensitivity` (2026-05-20)
 
 ### Goal
-Implement `runSensitivity` in SMoReGloS: GSA of CM output with respect to CM parameters, using the SM as a fast proxy for the CM.
+Implement `runSensitivity` in SmoreGSA: GSA of CM output with respect to CM parameters, using the SM as a fast proxy for the CM.
 
 ### Key Design Decisions
 
@@ -107,7 +107,7 @@ Initial plan considered varying SM parameters directly. Clarified with user: the
 For arbitrary CM parameter vectors, the CI bounds are taken from the closest known cohort (Euclidean distance in CM parameter space). No interpolation library needed; the inner loop is O(n_cohorts) and n_cohorts is typically small. Richer interpolation (linear, RBF) deferred.
 
 **`LatinHypercubeSample(rng=rng)` works in QuasiMonteCarlo 0.3.x**
-The progress note from the SMoReBase session was outdated. The installed QMC version (`sBroe`, v0.3.x) does support `LatinHypercubeSample(rng=...)` via `@kwdef`.
+The progress note from the SmoreBase session was outdated. The installed QMC version (`sBroe`, v0.3.x) does support `LatinHypercubeSample(rng=...)` via `@kwdef`.
 
 **`_runSensitivity` takes `n_cm::Int`, not bounds**
 Since bounds are always `[0,1]^n_cm` (ICDF is inside the callable), the internal dispatch functions construct unit bounds from `n_cm` directly. No bounds need to be threaded through from `runSensitivity`.
@@ -147,14 +147,14 @@ Each half is scanned outward from the MLE (left half: MLE → lb; right half: ML
 The existing ProfileLikelihood test used t ∈ [0, 5], which leaves K completely unidentifiable (N(5) ≈ 0.19 ≪ K=4). The test's conditional CI check masked this. Changed to t ∈ [0:5:50] so K is visible in the data, allowing the CI assertion to be made unconditional.
 
 ### Status
-All SMoReBase tests pass (16 assertions in ProfileLikelihood). Branch `feature/mle-anchored-profile` ready for review.
+All SmoreBase tests pass (16 assertions in ProfileLikelihood). Branch `feature/mle-anchored-profile` ready for review.
 
 ---
 
 ## Session: Plotting Recipes (RecipesBase.jl) (2026-05-21)
 
 ### Goal
-Add backend-agnostic plot recipes to `SMoReBase` and `SMoReGloS` so users can assess every pipeline stage: fit quality, profile likelihood curves, prediction uncertainty bands, and sensitivity bar charts.
+Add backend-agnostic plot recipes to `SmoreBase` and `SmoreGSA` so users can assess every pipeline stage: fit quality, profile likelihood curves, prediction uncertainty bands, and sensitivity bar charts.
 
 ### Key Design Decisions
 
@@ -187,7 +187,7 @@ Branch `feature/plot-recipes`. All 9 new test sets pass, no regressions. Ready f
 ## Session: Makie Plot Extensions (2026-05-21)
 
 ### Goal
-Add optional Makie ecosystem plot support to `SMoReBase` and `SMoReGloS` as Julia package extensions, mirroring every existing RecipesBase recipe without making Makie a hard dependency.
+Add optional Makie ecosystem plot support to `SmoreBase` and `SmoreGSA` as Julia package extensions, mirroring every existing RecipesBase recipe without making Makie a hard dependency.
 
 ### Key Design Decisions
 
@@ -211,21 +211,42 @@ Branch `feature/makie-extensions`. All files written; no tests added (Makie is a
 
 ---
 
+## Session: Monorepo → Separate Repos (2026-05-21)
+
+### Goal
+Explode the monorepo into three standalone Julia packages (`SmoreBase`, `SmoreFit`, `SmoreGSA`), each in its own GitHub repository. The `Smore` repo becomes a thin meta-package that simply re-exports all three.
+
+### Key Design Decisions
+
+**Each sub-package moves to its own repo**
+`SmoreBase`, `SmoreFit`, and `SmoreGSA` each get their own repository, registered independently in the Julia General registry. This follows standard Julia ecosystem practice (analogous to `DifferentialEquations.jl` and its component packages). The `Smore` meta-package keeps users from needing to know which package holds which function.
+
+**`Smore` repo retains only `src/Smore.jl`, `Project.toml`, CI, and docs**
+The former `SmoreBase/`, `SmoreFit/`, and `SmoreGSA/` subdirectories are removed from this repo. The `[workspace]` block is removed from `Project.toml`; the sub-packages appear only as `[deps]`.
+
+**Feature work moves to sub-package repos**
+New features, bug fixes, and tests for `SmoreBase`/`SmoreFit`/`SmoreGSA` are developed in their respective repos and released independently. Bumping the compat bounds in this repo's `Project.toml` is the only action needed here when sub-packages release new versions.
+
+### Status
+In progress on `main`. Sub-package directories deleted; `Project.toml` updated; docs updated.
+
+---
+
 ## Session: RecipesBase → Package Extension (2026-05-21)
 
 ### Goal
-Move the RecipesBase plot recipes from direct dependencies to package extensions (`SMoReBasePlotsExt`, `SMoReGloSPlotsExt`), so that all plotting backends (Plots.jl and Makie) are uniformly optional.
+Move the RecipesBase plot recipes from direct dependencies to package extensions (`SmoreBasePlotsExt`, `SmoreGSAPlotsExt`), so that all plotting backends (Plots.jl and Makie) are uniformly optional.
 
 ### Key Design Decisions
 
 **`SMFitPlot` stays in the main package**
-`SMFitPlot` is a plain struct that users construct before calling any plot function — both the Plots and Makie extensions dispatch on it. If the struct lived in the extension, Makie-only users would need to load RecipesBase just to construct it. The struct stays in `src/plots/fit_recipe.jl` and is exported from `SMoReBase`; only the `@recipe` implementations move to the extension.
+`SMFitPlot` is a plain struct that users construct before calling any plot function — both the Plots and Makie extensions dispatch on it. If the struct lived in the extension, Makie-only users would need to load RecipesBase just to construct it. The struct stays in `src/plots/fit_recipe.jl` and is exported from `SmoreBase`; only the `@recipe` implementations move to the extension.
 
 **`using RecipesBase` removed from module entrypoints**
-`SMoReBase.jl` and `SMoReGloS.jl` no longer `using RecipesBase`. Recipe registration happens inside the extension modules when the user loads RecipesBase (via any Plots-compatible backend). Tests already `using RecipesBase` at the top, so the extension fires automatically during test runs.
+`SmoreBase.jl` and `SmoreGSA.jl` no longer `using RecipesBase`. Recipe registration happens inside the extension modules when the user loads RecipesBase (via any Plots-compatible backend). Tests already `using RecipesBase` at the top, so the extension fires automatically during test runs.
 
-**`_evaluate` accessed via `SMoReBase._evaluate` in the extension**
-`using SMoReBase` in the extension gives only exported symbols. The fit recipe calls `SMoReBase._evaluate(...)` with the explicit module prefix, consistent with the ODE extension pattern.
+**`_evaluate` accessed via `SmoreBase._evaluate` in the extension**
+`using SmoreBase` in the extension gives only exported symbols. The fit recipe calls `SmoreBase._evaluate(...)` with the explicit module prefix, consistent with the ODE extension pattern.
 
 ### Status
 Branch `feature/plot-extensions`. All files written. Existing tests unchanged — `using RecipesBase` in each test file triggers the extension. Ready for review.

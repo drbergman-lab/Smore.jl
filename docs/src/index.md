@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = SMoReVerse
+CurrentModule = Smore
 ```
 
-# SMoReVerse
+# Smore
 
-Documentation for [SMoReVerse](https://github.com/drbergman-lab/SMoReVerse.jl).
+Documentation for [Smore](https://github.com/drbergman-lab/Smore.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [SMoReVerse]
+Modules = [Smore]
 ```

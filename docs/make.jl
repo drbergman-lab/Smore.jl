@@ -1,14 +1,14 @@
-using SMoReVerse
+using Smore
 using Documenter
 
-DocMeta.setdocmeta!(SMoReVerse, :DocTestSetup, :(using SMoReVerse); recursive=true)
+DocMeta.setdocmeta!(Smore, :DocTestSetup, :(using Smore); recursive=true)
 
 makedocs(;
-    modules=[SMoReVerse],
+    modules=[Smore],
     authors="Daniel Bergman <danielrbergman@gmail.com> and contributors",
-    sitename="SMoReVerse.jl",
+    sitename="Smore.jl",
     format=Documenter.HTML(;
-        canonical="https://bergman-lab.github.io/SMoReVerse.jl",
+        canonical="https://bergman-lab.github.io/Smore.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/drbergman-lab/SMoReVerse.jl",
+    repo="github.com/drbergman-lab/Smore.jl",
     devbranch="main",
 )

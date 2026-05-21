@@ -1,21 +1,14 @@
-using SMoReVerse
+using Smore
 using Test
+import Pkg
 
-# Run each sub-package's own test suite in a subprocess so it resolves against
-# its own Project.toml rather than the meta-package environment.
-const ROOT = dirname(dirname(@__FILE__))
+@testset "Smore" begin
+    @test Smore isa Module
+    @test isdefined(Smore, :SmoreBase)
+    @test isdefined(Smore, :SmoreFit)
+    @test isdefined(Smore, :SmoreGSA)
+end
 
-const SUBPKGS = [
-    ("SMoReBase", joinpath(ROOT, "SMoReBase")),
-    ("SMoReParS",  joinpath(ROOT, "SMoReParS")),
-    ("SMoReGloS",  joinpath(ROOT, "SMoReGloS")),
-]
-
-@testset "SMoReVerse" begin
-    for (name, path) in SUBPKGS
-        @testset "$name" begin
-            cmd = `$(Base.julia_exename()) --project=$path -e "using Pkg; Pkg.test()"`
-            @test success(pipeline(cmd; stdout=stdout, stderr=stderr))
-        end
-    end
+for name in ["SmoreBase", "SmoreFit", "SmoreGSA"]
+    Pkg.test(name)
 end

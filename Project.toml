@@ -1,18 +1,20 @@
-name = "SMoReVerse"
+name = "Smore"
 uuid = "23b2bb2a-7f74-494c-9af6-5faea0e0a514"
 version = "0.1.0"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
 
-[workspace]
-projects = ["SMoReBase", "SMoReParS", "SMoReGloS"]
-
 [deps]
-SMoReBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
-SMoReGloS = "2c631fec-d58f-4fb9-82f2-11ad836cc5aa"
-SMoReParS = "3ee2652a-bda0-4b1a-9ac8-9183f1e3827d"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SmoreBase = "5c232813-7b28-4e6f-a96c-e027eca8fd3b"
+SmoreFit = "3e3f2270-f616-47a3-a2d7-3d5e12f50e92"
+SmoreGSA = "2c631fec-d58f-4fb9-82f2-11ad836cc5aa"
 
 [compat]
 Pkg = "1.12.1"
+Reexport = "1.2.2"
+SmoreBase = "0.1.0"
+SmoreFit = "0.0.1"
+SmoreGSA = "0.1.0"
 julia = "1.10"
 
 [extras]

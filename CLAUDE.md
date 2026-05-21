@@ -1,4 +1,4 @@
-# CLAUDE.md — SMoReVerse.jl
+# CLAUDE.md — Smore.jl
 
 ## About the User
 Assistant professor working on computational modeling of cancer-immune interactions. Research involves mechanistic modeling and agent-based modeling (ABM) frameworks. The "complex model" (CM) in this codebase is typically an ABM, but can be any slow, expensive simulator.
@@ -15,58 +15,41 @@ Start any feature session by reading the relevant PRD entry and the Implementati
 
 ## Project Overview
 
-SMoReVerse.jl is a Julia port and generalization of the MATLAB [SMoReParS](https://github.com/drbergman/SMoReParS) framework (Surrogate Modeling for Reconstructing Parameter Surfaces). The SM sits between the CM and the real world: it is trained on CM-generated output, then used as a fast proxy for comparing against real-world data and analyzing CM behavior. The three sub-packages implement successive steps of this pipeline.
+Smore.jl is a Julia port and generalization of the MATLAB [SMoReParS](https://github.com/drbergman/SMoReParS) framework (Surrogate Modeling for Reconstructing Parameter Surfaces). The SM sits between the CM and the real world: it is trained on CM-generated output, then used as a fast proxy for comparing against real-world data and analyzing CM behavior.
 
-The package is a monorepo with three Julia submodules:
-- **`SMoReBase`** — abstract types, SM fitting, UQ of SM parameters
-- **`SMoReParS`** — posterior inference on CM parameter space
-- **`SMoReGloS`** — global sensitivity analysis of SM outputs
+**This repo is a thin meta-package.** The three sub-packages that implement successive steps of the pipeline each live in their own repository and are declared as regular registered dependencies here:
+- **`SmoreBase`** — abstract types, SM fitting, UQ of SM parameters
+- **`SmoreFit`** — posterior inference on CM parameter space
+- **`SmoreGSA`** — global sensitivity analysis of SM outputs
 
-A sibling package `SMoReExamples.jl` holds worked examples and model-specific code. Do **not** add model-specific code to this repo.
+A sibling package `SmoreExamples.jl` holds worked examples and model-specific code. Do **not** add model-specific code to this repo.
 
-## Monorepo Structure
+## Repository Structure
 
-Three independent Julia packages sharing one repo. Each has its own `Project.toml` and can be registered and split into its own repo independently. The root `Project.toml` defines the `SMoReVerse` meta-package and declares a `[workspace]` so all three packages resolve locally.
+This repo contains only the meta-package entry point. All feature code lives in the sub-package repos.
 
 ```
-Project.toml              # SMoReVerse meta-package; [workspace] lists sub-packages
+Project.toml    # Smore meta-package; lists SmoreBase, SmoreFit, SmoreGSA as [deps]
 src/
-└── SMoReVerse.jl         # meta-package module: `using SMoReBase, SMoReParS, SMoReGloS`
-SMoReBase/
-├── Project.toml          # SMoReBase package (own UUID); owns all core deps
-├── src/
-│   ├── SMoReBase.jl
-│   ├── types/            # CMData, SurrogateModel, ConditionSpec, loss, results
-│   ├── fitting/          # fitSurrogate implementation
-│   └── profile/          # UQ (profile likelihood) implementation
-├── test/
-│   └── runtests.jl
-└── ext/
-    └── SMoReBaseOrdinaryDiffEqExt.jl  # ODE solving; activated when OrdinaryDiffEq loaded
-SMoReParS/
-├── Project.toml          # depends on SMoReBase
-├── src/SMoReParS.jl
-└── test/runtests.jl
-SMoReGloS/
-├── Project.toml          # depends on SMoReBase + GlobalSensitivity
-├── src/
-│   ├── SMoReGloS.jl
-│   └── sensitivity/      # runSensitivity implementation
-└── test/runtests.jl
+└── Smore.jl   # re-exports: `using SmoreBase, SmoreFit, SmoreGSA`
+test/
+└── runtests.jl
+docs/
 ```
 
 ## Scope
 
-All work must remain strictly inside this repository folder (`~/.julia/dev/SMoReVerse/`).
-Do **not** access or edit files in `SMoReExamples.jl` or any other repo.
+Work in this repo is limited to:
+- `src/Smore.jl` (re-export list)
+- `Project.toml` (dependency versions)
+- Documentation (`README.md`, `docs/`)
+- CI configuration (`.github/workflows/`)
+
+Feature work on SmoreBase, SmoreFit, or SmoreGSA belongs in their respective repos. Do **not** access or edit files in `SmoreExamples.jl` or any other repo.
 
 ## Worktree Sessions
 
 When Claude Code launches a session inside a git worktree (primary working directory ends with `.claude/worktrees/<name>`), **all file reads and writes must use paths rooted at the worktree, not the main repo root.** The main repo may appear as an "Additional working directory" in the environment block — ignore it for file edits.
-
-**Concretely:** if the worktree is at `~/.julia/dev/SMoReVerse/.claude/worktrees/foo`, edit `~/.julia/dev/SMoReVerse/.claude/worktrees/foo/SMoReBase/src/types/cm_data.jl`, NOT the main repo path.
-
-**Pitfall — resumed sessions:** When a session is resumed from a compacted summary, the summary may cite main-repo paths from prior reads. Discard those paths and re-derive the correct worktree-rooted path before making any edits.
 
 ## Git Workflow
 
@@ -86,7 +69,7 @@ Claude Code (the CLI tool) runs directly on your machine and can freely run `git
 - **Types / Structs:** `PascalCase` (e.g., `CMData`, `ODESurrogateModel`, `SMFitResult`)
 - **Constants / module-level refs:** `snake_case` for internal refs; `SCREAMING_SNAKE_CASE` for env vars
 - **Files:** `snake_case.jl` (e.g., `cm_data.jl`, `surrogate_model.jl`)
-- **Exported vs internal:** public API exported from the relevant submodule file; internal helpers prefixed `_`
+- **Exported vs internal:** public API exported from the relevant sub-package entrypoint; internal helpers prefixed `_`
 - **Unicode field names:** use mathematical Unicode in structs where unambiguous (e.g., `μ`, `σ`, `Σ` in `CMData`)
 
 ## Git Rules
@@ -142,18 +125,11 @@ A feature is complete when **all** of the following are true:
 
 ## Integration Essentials
 
-- Meta-package entrypoint: `src/SMoReVerse.jl`
-- SMoReBase entrypoint: `SMoReBase/src/SMoReBase.jl`
-- SMoReParS entrypoint: `SMoReParS/src/SMoReParS.jl`
-- SMoReGloS entrypoint: `SMoReGloS/src/SMoReGloS.jl`
-- ODE extension: `SMoReBase/ext/SMoReBaseOrdinaryDiffEqExt.jl` (activated by loading `OrdinaryDiffEq`)
-- When adding new source files, add the `include(...)` call to the relevant package entrypoint **and** update the `export` list.
-- Run tests for a sub-package: `julia --project=SMoReBase -e 'using Pkg; Pkg.test()'`
-- Run all tests via the meta-package: `julia --project=. -e 'using Pkg; Pkg.test()'`
+- Meta-package entrypoint: `src/Smore.jl` — update this when a sub-package adds a new public export that should be re-exported.
+- Run meta-package tests: `julia --project=. -e 'using Pkg; Pkg.test()'`
 
 ## Julia Environment Rules
 
 - Always run Julia with `--project=.`
 - Preferred test command: `julia --project=. -e 'using Pkg; Pkg.test()'`
-- Do not edit `Manifest.toml` or add dependencies without explicit approval.
-- The `OrdinaryDiffEq` dependency is a weak dep; users must load it explicitly to use `ODESurrogateModel`.
+- Do not edit `Manifest.toml` or add/bump dependencies without explicit approval.

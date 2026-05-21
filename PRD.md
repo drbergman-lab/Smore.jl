@@ -1,25 +1,25 @@
-# Product Requirements Document — SMoReVerse.jl
+# Product Requirements Document — Smore.jl
 
-> **Purpose:** This document defines the complete feature set of SMoReVerse in behavioral terms. It is the authoritative answer to "what should this system do?" Read this at the start of any feature session to establish alignment between intent and implementation plan.
+> **Purpose:** This document defines the complete feature set of Smore in behavioral terms. It is the authoritative answer to "what should this system do?" Read this at the start of any feature session to establish alignment between intent and implementation plan.
 
 ---
 
 ## Product Overview
 
-**Vision:** SMoReVerse provides a Julia-native pipeline in which a fast surrogate model (SM) is trained on complex-model (CM) outputs and then used as a bridge to real-world data: fitting the SM to CM output, quantifying uncertainty in SM parameters, calibrating CM parameters against real-world observations via the SM, and analyzing CM behavior through the SM lens.
+**Vision:** Smore provides a Julia-native pipeline in which a fast surrogate model (SM) is trained on complex-model (CM) outputs and then used as a bridge to real-world data: fitting the SM to CM output, quantifying uncertainty in SM parameters, calibrating CM parameters against real-world observations via the SM, and analyzing CM behavior through the SM lens.
 
 **Target Users:** Computational modelers who have a slow CM (e.g., an ABM) and want to extract a fast, interpretable surrogate that can be compared to real-world data and analyzed statistically to understand the CM's parameter space.
 
-**Relationship to MATLAB SMoReParS:** SMoReVerse is a port and generalization. The "complex model" is not limited to agent-based models — it is any slow simulator.
+**Relationship to MATLAB SMoReParS:** Smore is a port and generalization. The "complex model" is not limited to agent-based models — it is any slow simulator.
 
-**Sub-packages:**
-- `SMoReBase` — SM fitting + UQ of SM parameters *(this PRD section)*
-- `SMoReParS` — posterior on CM parameter space *(future)*
-- `SMoReGloS` — global sensitivity analysis *(future)*
+**Sub-packages** (each is a standalone registered Julia package in its own repository):
+- `SmoreBase` — SM fitting + UQ of SM parameters
+- `SmoreFit` — posterior on CM parameter space *(future)*
+- `SmoreGSA` — global sensitivity analysis
 
 ---
 
-## SMoReBase Features
+## SmoreBase Features
 
 ---
 
@@ -39,7 +39,7 @@
   - `variable_names::Vector{String}` — names of observable output variables
   - `condition_labels::Vector{String}` — labels for experimental conditions
   - `param_set_labels::Vector{String}` — labels for CM parameter vectors (one SM fit per param_set)
-- Note: `CMData` holds CM-generated output only. Real-world observational data enters the pipeline in `SMoReParS` (as the target against which the fitted SM is calibrated), not here.
+- Note: `CMData` holds CM-generated output only. Real-world observational data enters the pipeline in `SmoreFit` (as the target against which the fitted SM is calibrated), not here.
 - The keyword constructor accepts both Unicode and ASCII aliases for the data fields:
   - `μ` or `mean` — mean observations
   - `σ` or `sd` — standard deviations
@@ -90,7 +90,7 @@
   - `fn::F` — analytical solution: `(t::Vector, p::Vector, condition) -> Matrix{Float64}` where rows are time points, columns are output variables
   - `pre_processor::Pre`, `post_processor::Post`, `custom_error_fn::Err`
 - Internal dispatch: `_evaluate(sm::AbstractSurrogateModel, t, p, condition) -> Matrix{Float64}` — the primary internal evaluation entry point used by fitting and UQ code
-- ODE extension: `ODESurrogateModel._evaluate` is implemented in `ext/SMoReBaseOrdinaryDiffEqExt.jl`; loading `using OrdinaryDiffEq` activates the extension. Calling `_evaluate` on an `ODESurrogateModel` without the extension loaded throws a descriptive error.
+- ODE extension: `ODESurrogateModel._evaluate` is implemented in `ext/SmoreBaseOrdinaryDiffEqExt.jl`; loading `using OrdinaryDiffEq` activates the extension. Calling `_evaluate` on an `ODESurrogateModel` without the extension loaded throws a descriptive error.
 
 **Acceptance criteria:**
 - `_evaluate(sm::AnalyticalSurrogateModel, t, p, c)` calls `sm.fn(t, p, c)` and returns a matrix.
@@ -230,7 +230,7 @@
 **Priority:** Should-have
 
 **Motivation:**
-The SMoReVerse pipeline has discrete steps whose outputs are natural checkpoints: CM simulation → `CMData`, SM fitting → `SMFitResult`, UQ → `ProfileLikelihoodResult`, prediction sampling → `SampledPredictions`. Making each step able to write its result to disk and read it back enables:
+The Smore pipeline has discrete steps whose outputs are natural checkpoints: CM simulation → `CMData`, SM fitting → `SMFitResult`, UQ → `ProfileLikelihoodResult`, prediction sampling → `SampledPredictions`. Making each step able to write its result to disk and read it back enables:
 - Nextflow / workflow-manager integration (each process writes one file, the next reads it)
 - Resuming long-running pipelines without re-running earlier steps
 - Sharing intermediate results across collaborators
@@ -261,27 +261,27 @@ result = fitSurrogate(sm, data, P0, prior; save_path = "fit.jld2", serializer = 
 - The `AbstractSerializer` interface is documented so users can implement custom backends.
 
 **Out of scope (v0):**
-- `CMData` persistence (CM simulation output likely originates from an external tool and is ingested, not produced, by SMoReVerse — format TBD).
+- `CMData` persistence (CM simulation output likely originates from an external tool and is ingested, not produced, by Smore — format TBD).
 - Streaming / incremental writes during optimization.
 - Automatic dependency tracking between files (that belongs in the workflow manager, e.g., Nextflow).
 
 ---
 
-## SMoReParS Features (Future)
+## SmoreFit Features (Future)
 
 > Implementation not yet started. Specification will be added when work begins.
 
 **Feature: CM Posterior Inference**
-- This is where real-world observational data enters the pipeline. Given a fitted SM (from `SMoReBase`) and real-world observations, infer a posterior distribution over CM parameter space.
+- This is where real-world observational data enters the pipeline. Given a fitted SM (from `SmoreBase`) and real-world observations, infer a posterior distribution over CM parameter space.
 - Inputs:
   - Real-world observational data (type TBD — likely a sibling to `CMData`)
-  - Fitted SM parameters (`SMFitResult`) and SM UQ (`SMUQResult`) from `SMoReBase`
+  - Fitted SM parameters (`SMFitResult`) and SM UQ (`SMUQResult`) from `SmoreBase`
   - CM parameter bounds
 - Planned API: `buildPosterior(sm, realWorldData, uqResult, cmBounds; ...) -> CMPosteriorResult`
 
 ---
 
-## SMoReGloS Features
+## SmoreGSA Features
 
 ---
 
@@ -345,7 +345,7 @@ result = fitSurrogate(sm, data, P0, prior; save_path = "fit.jld2", serializer = 
 
 **Behavioral specification:**
 
-`RecipesBase.jl` is added as a direct dependency to `SMoReBase` and `SMoReGloS`. Users load any Plots.jl-compatible backend; the recipes activate automatically. `SampledPredictions` gains a `times` field so `plot(samples)` is standalone.
+`RecipesBase.jl` is added as a direct dependency to `SmoreBase` and `SmoreGSA`. Users load any Plots.jl-compatible backend; the recipes activate automatically. `SampledPredictions` gains a `times` field so `plot(samples)` is standalone.
 
 Four recipe targets:
 
@@ -375,7 +375,7 @@ Four recipe targets:
 
 **Testing:**
 - `RecipesBase.apply_recipe(Dict{Symbol,Any}(), obj)` exercises each recipe without a backend
-- Tests added to `SMoReBase/test/runtests.jl` and `SMoReGloS/test/runtests.jl`
+- Tests live in the `SmoreBase` and `SmoreGSA` repos
 
 **Acceptance criteria:**
 - `plot(SMFitPlot(sm, data, fit))` produces one subplot per output variable with SM fit line and CM data scatter ± error bars.
@@ -389,18 +389,18 @@ Four recipe targets:
 
 ### Feature: Makie Plot Extensions
 
-**One-line description:** Optional Makie extensions for `SMoReBase` and `SMoReGloS` that mirror every RecipesBase recipe using the Makie ecosystem (CairoMakie / GLMakie / WGLMakie), loaded automatically via Julia package extensions.
+**One-line description:** Optional Makie extensions for `SmoreBase` and `SmoreGSA` that mirror every RecipesBase recipe using the Makie ecosystem (CairoMakie / GLMakie / WGLMakie), loaded automatically via Julia package extensions.
 
 **Priority:** Should-have
 
 **Behavioral specification:**
 
-`Makie` is added as a weak dependency to `SMoReBase` and `SMoReGloS`. The extension loads automatically when the user loads any Makie backend; it is completely invisible otherwise. Each extension defines `Makie.plot(result)` methods that return a `Makie.Figure` with the same multi-panel layout as the corresponding RecipesBase recipe.
+`Makie` is added as a weak dependency to `SmoreBase` and `SmoreGSA`. The extension loads automatically when the user loads any Makie backend; it is completely invisible otherwise. Each extension defines `Makie.plot(result)` methods that return a `Makie.Figure` with the same multi-panel layout as the corresponding RecipesBase recipe.
 
 | Extension | Triggers on | Types covered |
 |-----------|------------|---------------|
-| `SMoReBaseMakieExt` | `Makie` | `SMFitPlot`, `SMFitResult`, `ProfileCurve`, `ProfileLikelihoodResult`, `SampledPredictions` |
-| `SMoReGloSMakieExt` | `Makie` | `SensitivityResult` |
+| `SmoreBaseMakieExt` | `Makie` | `SMFitPlot`, `SMFitResult`, `ProfileCurve`, `ProfileLikelihoodResult`, `SampledPredictions` |
+| `SmoreGSAMakieExt` | `Makie` | `SensitivityResult` |
 
 **`SMFitPlot`** — one `Axis` per output variable; `lines!` for SM fit, `errorbars!` + `scatter!` for CM data ± σ. Keywords: `param_set_index=1`, `condition_index=1`.
 
@@ -415,8 +415,8 @@ Four recipe targets:
 **`SensitivityResult`** — single `Axis`; `barplot!` with dodge grouping; x-axis = CM parameter names, one dodge group per output; ST bars alongside S1 at reduced opacity when `show_ST=true` (default) and ST is non-`nothing`. Keyword: `show_ST=true`.
 
 **Acceptance criteria:**
-- Loading only `SMoReBase` (no Makie backend) does not error — extension remains optional.
-- `using CairoMakie, SMoReBase` triggers `SMoReBaseMakieExt`.
+- Loading only `SmoreBase` (no Makie backend) does not error — extension remains optional.
+- `using CairoMakie, SmoreBase` triggers `SmoreBaseMakieExt`.
 - `Makie.plot(SMFitPlot(sm, data, fit))` returns a `Makie.Figure`.
 - `Makie.plot(uq_result)` returns a `Makie.Figure` with profile curves.
 - `Makie.plot(sampled_preds)` returns a `Makie.Figure` with ribbon + median.
@@ -436,7 +436,7 @@ Four recipe targets:
 ## Ruled Out / Deferred
 
 - **Raw cell-level CM data in `CMData`**: CM outputs that are variable-length tables (e.g., per-cell trajectories) are out of scope for v0. A future `CellTableCMData` subtype will handle this.
-- **`LHSSensitivity` as a formal GSA method type**: LHS-based prediction sampling is a utility (`sampleSMPredictions`) for uncertainty propagation, not a global sensitivity analysis method. Keeping it separate from `SMoReGloS` avoids confusing UQ with GSA.
-- **`GlobalSensitivity.jl` inside `SMoReBase`**: SM sensitivity lives in `SMoReGloS`. Within `SMoReBase`, only `sampleSMPredictions` (MC, not GSA) is provided.
-- **Full `OrdinaryDiffEq` as a direct dependency**: The package is a weak dependency to keep `SMoReVerse` lean. Users who use `ODESurrogateModel` must load `OrdinaryDiffEq` themselves. This activates the `SMoReBaseOrdinaryDiffEqExt` extension.
+- **`LHSSensitivity` as a formal GSA method type**: LHS-based prediction sampling is a utility (`sampleSMPredictions`) for uncertainty propagation, not a global sensitivity analysis method. Keeping it separate from `SmoreGSA` avoids confusing UQ with GSA.
+- **`GlobalSensitivity.jl` inside `SmoreBase`**: SM sensitivity lives in `SmoreGSA`. Within `SmoreBase`, only `sampleSMPredictions` (MC, not GSA) is provided.
+- **Full `OrdinaryDiffEq` as a direct dependency**: The package is a weak dependency to keep `Smore` lean. Users who use `ODESurrogateModel` must load `OrdinaryDiffEq` themselves. This activates the `SmoreBaseOrdinaryDiffEqExt` extension.
 - **Separate `WeightedSSE` loss type**: `GaussianNLL` already subsumes weighted SSE; a duplicate type would create ambiguity.

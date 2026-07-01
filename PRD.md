@@ -169,8 +169,8 @@
   - `n_points::Int = 50` — number of grid points per parameter profile
   - `confidence_level::Float64 = 0.95`
   - `bounds::Union{Nothing, ParameterBounds} = nothing` — profile range; defaults to `SMFitResult` bounds
-- Internal dispatch: `_uq(sm, data, fitResult, method::AbstractUQMethod; conditions, cohort_index) -> SMUQResult`
-  - Users do not call `_uq` directly; it is called by higher-level pipeline functions (API TBD)
+- Public dispatch: `quantifyUncertainty(problem::SMFitProblem, fitResult, method::AbstractUQMethod; param_set_index) -> SMUQResult`
+  - Exported from SmoreBase; called as the second pipeline stage (`fitSurrogate` → `quantifyUncertainty` → `sampleSMPredictions`)
 
 **Profile likelihood method:**
 - For each SM parameter `θ_i`: sweep a grid of `n_points` values anchored at the MLE, fix `θ_i`, re-optimize all other parameters, record the log-likelihood at each grid point

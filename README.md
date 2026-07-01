@@ -66,7 +66,6 @@ fit = fitSurrogate(sm, data, P0, bounds)
 - [x] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
 - [x] `SampledPredictions` — result type for prediction sampling (stores `times` for standalone plotting)
 - [x] Plotting recipes (`RecipesBase.jl`) — `plot(SMFitPlot(sm, data, fit))`, `plot(fit_result)`, `plot(uq_result)`, `plot(sampled_preds)`
-- [x] Makie extension (`SmoreBaseMakieExt`) — `Makie.plot(...)` for all SmoreBase result types; activated by loading any Makie backend
 
 ### Remaining
 
@@ -79,4 +78,3 @@ fit = fitSurrogate(sm, data, P0, bounds)
 **SmoreGSA**
 - [x] `runSensitivity` — EFAST and Morris sensitivity of CM outputs to CM parameters, using SM as fast CM proxy (via `GlobalSensitivity.jl`)
 - [x] Plotting recipes (`RecipesBase.jl`) — `plot(sens_result)` grouped bar chart of S1/ST indices
-- [x] Makie extension (`SmoreGSAMakieExt`) — `Makie.plot(sens_result)` grouped bar chart; activated by loading any Makie backend

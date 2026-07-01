@@ -61,7 +61,7 @@ fit = fitSurrogate(sm, data, P0, bounds)
 - [x] `AbstractLoss`, `GaussianNLL`, `CustomLoss` — loss function types
 - [x] `fitSurrogate` — fit SM to CM output data via bounded LBFGS optimization (parallel over param_sets)
 - [x] `SMFitResult` — result type for SM fitting
-- [x] UQ of SM parameters — `ProfileLikelihood` method; `_uq` internal dispatch; MLE-anchored grid with proportional split and outward warm-start
+- [x] UQ of SM parameters — `ProfileLikelihood` method; `quantifyUncertainty` dispatch; MLE-anchored grid with proportional split and outward warm-start
 - [x] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ
 - [x] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
 - [x] `SampledPredictions` — result type for prediction sampling (stores `times` for standalone plotting)

@@ -278,3 +278,33 @@ subpackage versions.
 ### Status
 Implemented on `feature/bump-subpackage-versions`. `Pkg.test()` (which delegates to each
 sub-package's own test suite) passes.
+
+---
+
+## Session: Trim PRD.md to a meta-package pointer (2026-07-02)
+
+### Goal
+`PRD.md` carried a full duplicate of every sub-package's behavioral spec (~440 lines) — a
+holdover from before the monorepo split into separate `SmoreBase`/`SmoreFit`/`SmoreGSA`/
+`SmoreExamples` repos. It had gone stale in ways a terminology rename can't fix: it still
+documented `custom_error_fn`, `ParameterBounds`, `fitSurrogate(sm, data, P0, bounds; ...)`,
+and a full "Makie Plot Extensions" feature — all removed or replaced downstream, in some
+cases (Makie) explicitly and deliberately. Two sources of truth for the same behavior, one of
+which nobody was maintaining.
+
+### Decision
+Trimmed to: Product Overview (still genuinely this repo's own content), a table pointing to
+each sub-package's `PRD.md` on GitHub as *the* source of truth for its behavior, one small
+"Meta-package re-export" feature section describing what Smore.jl itself actually does
+(`Reexport.jl` forwarding + compat-floor bumping discipline), and a "Ruled Out" note
+explaining why the duplication was removed rather than updated in place.
+
+Considered keeping short summaries of each sub-package feature (a middle ground between full
+duplication and a bare pointer) — rejected, since any summary detailed enough to be useful
+(e.g. `ProfileLikelihood`'s grid-splitting algorithm) is detailed enough to go stale the same
+way the original did. A bare pointer has no content to go stale.
+
+### Status
+Implemented on `feature/bump-subpackage-versions` (same branch as the version-bump work
+above — both are meta-package housekeeping). No code changes, so no test impact beyond the
+existing `Pkg.test()` pass already recorded.

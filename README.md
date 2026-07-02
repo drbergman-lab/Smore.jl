@@ -34,14 +34,14 @@ sm = ODESurrogateModel(
 # Supply summary statistics from your complex model
 # Unicode (μ, σ, Σ) and ASCII (mean, sd, cov) keyword forms are both accepted
 data = CMData(
-    mean = ...,   # mean observations [n_times × n_outputs] per cohort/condition
+    mean = ...,   # mean observations [n_times × n_outputs] per CM param_set/condition
     sd   = ...,   # standard deviations
     times = t,
 )
 
 # Fit SM parameters
 bounds = ParameterBounds(lower=[0.0, 0.0], upper=[2.0, 10.0], names=["r", "K"])
-P0 = [0.5 5.0]   # initial guess [n_cohorts × n_params]
+P0 = [0.5 5.0]   # initial guess [n_cm_param_sets × n_params]
 fit = fitSurrogate(sm, data, P0, bounds)
 ```
 
@@ -54,12 +54,12 @@ fit = fitSurrogate(sm, data, P0, bounds)
 ### Completed
 
 **SmoreBase**
-- [x] `CMData` / `AbstractCMData` — summary statistics type for CM observations (4-D layout: `[n_param_sets, n_conditions, n_times, n_outputs]`)
+- [x] `CMData` / `AbstractCMData` — summary statistics type for CM observations (4-D layout: `[n_cm_param_sets, n_conditions, n_times, n_outputs]`)
 - [x] `ConditionSpec`, `ParameterPrior` — supporting types (`ParameterPrior` holds `Distributions.jl` priors; box bounds via `Uniform`)
 - [x] `ODESurrogateModel`, `AnalyticalSurrogateModel` — surrogate model types with `_evaluate` dispatch
 - [x] ODE extension (`SmoreBaseOrdinaryDiffEqExt`) — ODE solving via `OrdinaryDiffEq.jl`
 - [x] `AbstractLoss`, `GaussianNLL`, `CustomLoss` — loss function types
-- [x] `fitSurrogate` — fit SM to CM output data via bounded LBFGS optimization (parallel over param_sets)
+- [x] `fitSurrogate` — fit SM to CM output data via bounded LBFGS optimization (parallel over cm_param_sets)
 - [x] `SMFitResult` — result type for SM fitting
 - [x] UQ of SM parameters — `ProfileLikelihood` method; `quantifyUncertainty` dispatch; MLE-anchored grid with proportional split and outward warm-start
 - [x] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ

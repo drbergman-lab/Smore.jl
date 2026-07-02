@@ -1,6 +1,6 @@
 name = "Smore"
 uuid = "23b2bb2a-7f74-494c-9af6-5faea0e0a514"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
 
 [deps]
@@ -12,9 +12,9 @@ SmoreGSA = "2c631fec-d58f-4fb9-82f2-11ad836cc5aa"
 [compat]
 Pkg = "1.10"
 Reexport = "1.2.2"
-SmoreBase = "0.3"
-SmoreFit = "0.3"
-SmoreGSA = "0.3"
+SmoreBase = "0.4"
+SmoreFit = "0.4"
+SmoreGSA = "0.3.1"
 julia = "1.10"
 
 [extras]

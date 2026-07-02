@@ -250,3 +250,31 @@ Move the RecipesBase plot recipes from direct dependencies to package extensions
 
 ### Status
 Branch `feature/plot-extensions`. All files written. Existing tests unchanged — `using RecipesBase` in each test file triggers the extension. Ready for review.
+
+---
+
+## Session: Version bump for subpackage breaking changes (2026-07-02)
+
+### Goal
+SmoreBase and SmoreFit both shipped breaking releases in the same round of cross-repo work:
+SmoreBase 0.3.0 → 0.4.0 (`quantifyUncertainty` signature/return-type change, `custom_solve_fn`
+removed from `ODESurrogateModel`, and a `param_set` → `cm_param_set` rename across its exported
+API); SmoreFit 0.3.0 → 0.4.0 (`buildPosterior` dropped its `cm_prior` argument). SmoreGSA moved
+0.3.0 → 0.3.1 (no break to its own public API, but its `SmoreBase` compat floor had to rise
+regardless). Since `Smore.jl` re-exports all three verbatim (`@reexport using SmoreBase` etc.,
+via Reexport.jl), these breaking changes are breaking changes for anyone who does `using Smore`
+too — the meta-package needed its own version bump to reflect that, plus updated compat floors
+so `Pkg.up` in downstream repos (starting with `SmoreExamples`) actually resolves to the new
+subpackage versions.
+
+### Decision
+- `Project.toml`: version 0.3.0 → 0.4.0 (inherits the breaking surface, doesn't introduce its
+  own); compat `SmoreBase = "0.4"`, `SmoreFit = "0.4"`, `SmoreGSA = "0.3.1"`.
+- No changes to `src/Smore.jl` — `@reexport` automatically forwards SmoreBase's new
+  `CustomSolverSurrogateModel` export without a manual re-export list to maintain.
+- No PRD.md entry: this is a routine dependency-version bump, not a behavioral/feature change
+  in this repo.
+
+### Status
+Implemented on `feature/bump-subpackage-versions`. `Pkg.test()` (which delegates to each
+sub-package's own test suite) passes.

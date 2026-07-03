@@ -1,6 +1,6 @@
 name = "Smore"
 uuid = "23b2bb2a-7f74-494c-9af6-5faea0e0a514"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
 
 [deps]

@@ -308,3 +308,68 @@ way the original did. A bare pointer has no content to go stale.
 Implemented on `feature/bump-subpackage-versions` (same branch as the version-bump work
 above — both are meta-package housekeeping). No code changes, so no test impact beyond the
 existing `Pkg.test()` pass already recorded.
+
+---
+
+## Session: Pipeline Overview table in docs/src/index.md (2026-07-02)
+
+### Goal
+`cm_posterior_pipeline.jl` (SmoreExamples) had a nice wrap-up table summarizing the full
+8-step Smore pipeline (which sub-package/function handles each step). Since that table
+describes the pipeline as a whole rather than anything specific to the CM-posterior notebook,
+it belongs in Smore.jl's own documentation rather than living only in one example notebook.
+
+### Decision
+Added a "Pipeline Overview" section to `docs/src/index.md` with the same step/sub-package/
+function table plus a short paragraph on the SmoreGSA/SmoreFit fork after step 6 (shared
+per-CM-parameter-set `ProfileLikelihoodResult` backbone, two complementary downstream uses).
+Doc-only change, no code/PRD impact.
+
+### Status
+Implemented on `feature/pipeline-overview-docs`.
+
+### Copilot review (PR #9)
+Three comments:
+- **Addressed:** table header "Function" doesn't fit `SMFitProblem` (a type/entry-point, not a
+  function) — renamed the column to "API".
+- **Addressed:** the table listed Step 8 (`SmoreFit`'s `buildPosterior`/`posteriorScore`/
+  `inPosterior`) as available, but this file's own "Implementation Status" still had
+  `buildPosterior` under "Remaining" — a real contradiction, but the stale side was the
+  tracking doc, not the new table: `buildPosterior` has been complete in SmoreFit since
+  well before this session (its own README already marks it `[x]`, and SmoreFit 0.4.1 — inside
+  this repo's `SmoreFit = "0.4"` compat bound — has it). Moved it to "Completed" instead of
+  hedging the Pipeline Overview into "planned/WIP" language for something that isn't.
+- **Addressed while in the area (not a Copilot comment, but the same bug class):** found
+  `SmoreGSA`'s two `[x]`-checked items sitting under the "### Remaining" heading — moved them
+  back under "### Completed" where they belong.
+
+### Status
+Implemented on `feature/pipeline-overview-docs`. Doc-only, no test impact.
+
+---
+
+## Session: Drop duplicated Implementation Status from README.md (2026-07-02)
+
+### Goal
+Fixing the Copilot-flagged staleness above was itself a symptom: README.md's "Implementation
+Status" section duplicates each sub-package's own status checklist, and that duplication had
+already gone stale twice (an already-shipped `SmoreFit` feature marked not-yet-built, and a
+`SmoreGSA` item filed under the wrong heading) before anyone noticed. PRD.md hit this same
+failure mode earlier (see "Ruled Out / Deferred": a duplicated behavioral spec that "went stale
+silently" on `custom_error_fn`, `ParameterBounds`, and a removed Makie extension) and was already
+fixed there — replaced with a link table to each sub-package's own `PRD.md`. README.md never got
+the equivalent treatment.
+
+### Decision
+Replaced README.md's per-subpackage `[x]`/`[ ]` checklists with a short link table to each
+sub-package's own README `#implementation-status` section — the same fix PRD.md already applied
+to its behavioral spec, now applied to the status tracking too. Also fixed the Quick Start code
+block while in there: it still called `ParameterBounds` and `fitSurrogate(sm, data, P0, bounds)`,
+neither of which exist in current SmoreBase (`ParameterPrior`, `SMFitProblem`, `fitSurrogate(problem, P0)`) —
+the same kind of drift, just in example code instead of a checklist. Replaced with the same
+Quick Start pattern SmoreBase's own README uses (kept in sync there because it's the actual
+source of truth), and pointed to SmoreFit/SmoreGSA's READMEs for their own Quick Starts rather
+than duplicating those too.
+
+### Status
+Implemented on `feature/pipeline-overview-docs`. Doc-only, no test impact.

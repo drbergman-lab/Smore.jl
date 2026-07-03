@@ -21,60 +21,49 @@ Smore is a Julia port and generalization of [SMoReParS](https://github.com/drber
 
 ```julia
 using Smore
-using Smore.SmoreBase
 using OrdinaryDiffEq   # activates ODE-solving extension
 
-# Define your surrogate model (ODE-based example)
+# Define a surrogate model (ODE-based example: logistic growth)
 sm = ODESurrogateModel(
     ode_fn = (du, u, p, t) -> (du[1] = p[1] * u[1] * (1 - u[1] / p[2])),
     y0 = [0.01],
     solver = Tsit5(),
 )
 
-# Supply summary statistics from your complex model
-# Unicode (μ, σ, Σ) and ASCII (mean, sd, cov) keyword forms are both accepted
+# Supply summary statistics from your complex model runs
 data = CMData(
-    mean = ...,   # mean observations [n_times × n_outputs] per CM param_set/condition
-    sd   = ...,   # standard deviations
+    mean  = ...,   # [n_cm_param_sets × n_conditions × n_times × n_outputs]
+    sd    = ...,   # same shape
     times = t,
 )
 
-# Fit SM parameters
-bounds = ParameterBounds(lower=[0.0, 0.0], upper=[2.0, 10.0], names=["r", "K"])
-P0 = [0.5 5.0]   # initial guess [n_cm_param_sets × n_params]
-fit = fitSurrogate(sm, data, P0, bounds)
+# Bundle model, data, prior, and loss into a single problem object
+prior   = ParameterPrior(lower=[0.0, 0.0], upper=[2.0, 10.0], names=["r", "K"])
+problem = SMFitProblem(sm, data, prior)   # loss defaults to GaussianNLL()
+
+# Fit SM parameters (one fit per cm_param_set)
+P0  = [0.5 5.0]   # initial guess [n_cm_param_sets × n_sm_params]
+fit = fitSurrogate(problem, P0)
+
+# Quantify uncertainty via profile likelihood
+uq = quantifyUncertainty(ProfileLikelihood(), problem, fit, 1)
 ```
+
+See each sub-package's own README for its full Quick Start (`SmoreFit` for posterior inference
+against real-world data, `SmoreGSA` for sensitivity analysis).
 
 ---
 
 ## Implementation Status
 
-> For Claude Code sessions: this section tracks what has been built across the sub-packages. Feature work lives in the sub-package repos; this file reflects overall pipeline status. See [PRD.md](PRD.md) for behavioral specifications and [progress.md](progress.md) for decision rationale.
+Each sub-package tracks its own implementation status — see their READMEs, linked below. This
+repo has no pipeline features of its own beyond the meta-package re-export (see PRD.md); keeping
+a duplicated checklist here went stale twice already (an already-shipped `SmoreFit` feature
+listed as not-yet-built, and a `SmoreGSA` item filed under the wrong heading), so it isn't
+maintained here anymore.
 
-### Completed
-
-**SmoreBase**
-- [x] `CMData` / `AbstractCMData` — summary statistics type for CM observations (4-D layout: `[n_cm_param_sets, n_conditions, n_times, n_outputs]`)
-- [x] `ConditionSpec`, `ParameterPrior` — supporting types (`ParameterPrior` holds `Distributions.jl` priors; box bounds via `Uniform`)
-- [x] `ODESurrogateModel`, `AnalyticalSurrogateModel` — surrogate model types with `_evaluate` dispatch
-- [x] ODE extension (`SmoreBaseOrdinaryDiffEqExt`) — ODE solving via `OrdinaryDiffEq.jl`
-- [x] `AbstractLoss`, `GaussianNLL`, `CustomLoss` — loss function types
-- [x] `fitSurrogate` — fit SM to CM output data via bounded LBFGS optimization (parallel over cm_param_sets)
-- [x] `SMFitResult` — result type for SM fitting
-- [x] UQ of SM parameters — `ProfileLikelihood` method; `quantifyUncertainty` dispatch; MLE-anchored grid with proportional split and outward warm-start
-- [x] `ProfileLikelihoodResult`, `ProfileCurve` — result types for UQ
-- [x] `sampleSMPredictions` — LHS-based MC sampling within UQ-defined parameter region
-- [x] `SampledPredictions` — result type for prediction sampling (stores `times` for standalone plotting)
-- [x] Plotting recipes (`RecipesBase.jl`) — `plot(SMFitPlot(sm, data, fit))`, `plot(fit_result)`, `plot(uq_result)`, `plot(sampled_preds)`
-
-### Remaining
-
-**SmoreBase**
-- [ ] `ODESurrogateModel.y0` — extend to `Dict{String,Vector{Float64}}` for condition-specific initial conditions
-
-**SmoreFit**
-- [ ] `buildPosterior` — posterior on CM parameter space given data + SM UQ
-
-**SmoreGSA**
-- [x] `runSensitivity` — EFAST and Morris sensitivity of CM outputs to CM parameters, using SM as fast CM proxy (via `GlobalSensitivity.jl`)
-- [x] Plotting recipes (`RecipesBase.jl`) — `plot(sens_result)` grouped bar chart of S1/ST indices
+| Sub-package | Implementation Status |
+|---|---|
+| `SmoreBase` | [SmoreBase.jl README](https://github.com/drbergman-lab/SmoreBase.jl/blob/main/README.md#implementation-status) |
+| `SmoreFit`  | [SmoreFit.jl README](https://github.com/drbergman-lab/SmoreFit.jl/blob/main/README.md#implementation-status) |
+| `SmoreGSA`  | [SmoreGSA.jl README](https://github.com/drbergman-lab/SmoreGSA.jl/blob/main/README.md#implementation-status) |

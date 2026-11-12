@@ -33,7 +33,7 @@ A sibling package `SmoreExamples.jl` holds worked examples; it is not a dependen
 **Behavioral specification:**
 - `src/Smore.jl` re-exports each sub-package via `Reexport.jl`: `@reexport using SmoreBase`, `@reexport using SmoreFit`, `@reexport using SmoreGSA`.
 - No manual per-symbol export list — a new public export added to any sub-package is automatically available via `using Smore` once `Project.toml`'s compat floor covers the version that introduced it.
-- `Project.toml`'s `[compat]` entries for `SmoreBase`/`SmoreFit`/`SmoreGSA` must be bumped whenever the corresponding sub-package ships a breaking release, so `Pkg.up` in downstream repos (e.g. `SmoreExamples`) resolves to a version that actually has the symbols/behavior their code expects.
+- `Project.toml`'s `[compat]` entries for `SmoreBase`/`SmoreFit`/`SmoreGSA` must be bumped whenever the corresponding sub-package ships a breaking release, so `Pkg.up` in downstream repos (e.g. `SmoreExamples`) resolves to a version that actually has the symbols/behavior their code expects. Because `@reexport` forwards each sub-package's API verbatim, allowing a breaking sub-package release is itself breaking for `using Smore`: Smore's own version takes a breaking bump too (minor, while pre-1.0), including when the compat change comes from a CompatHelper PR.
 
 **Acceptance criteria:**
 - `using Smore` makes every symbol exported by `SmoreBase`, `SmoreFit`, and `SmoreGSA` available without qualification.
